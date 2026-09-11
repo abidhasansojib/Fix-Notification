@@ -22,24 +22,54 @@ class AppRepository {
         private var cachedRecommendedPackages: Set<String>? = null
 
         private val DEFAULT_RECOMMENDED_PACKAGES = setOf(
-            // Social Media & Messaging
-            "com.zing.zalo",
+            // Global Social Media & Messaging
+            "com.whatsapp",
+            "com.whatsapp.w4b",
+            "org.telegram.messenger",
             "com.facebook.orca",
             "com.facebook.katana",
-            "org.telegram.messenger",
-            "com.whatsapp",
             "com.instagram.android",
             "com.instagram.barcelona",
+            "com.imo.android.imoim",
+            "org.thoughtcrime.securesms",
+            "com.discord",
+            "com.viber.voip",
+            "com.twitter.android",
             "com.zhiliaoapp.musically",
             "com.ss.android.ugc.trill",
             "com.locket.Locket",
-            "com.discord",
-            "com.viber.voip",
-            "jp.naver.line.android",
-            "com.tencent.mm",
-            "com.twitter.android",
             "com.skype.raider",
-            // Banking & E-Wallets
+            "com.tencent.mm",
+            "jp.naver.line.android",
+            "com.zing.zalo",
+
+            // Bangladesh Mobile Financial Services (MFS) & Banking
+            "com.bKash.customerapp",
+            "com.konasl.nagad",
+            "bd.com.upay.customer",
+            "com.dbbl.mbs.apps.main",
+            "com.dbbl.nexus.pay",
+            "com.ibbl.cellfin",
+            "com.bracbank.astha",
+            "com.thecitybank.citytouch",
+            "com.trustandpay.customer",
+
+            // Crypto & Trading Exchanges
+            "com.binance.dev",
+            "com.bybit.app",
+
+            // Bangladesh Daily Services & Food Delivery
+            "com.pathao.user",
+            "com.global.foodpanda.android",
+            "com.daraz.android",
+
+            // Bangladesh Telecom & Utilities
+            "com.portonics.mygp",
+            "com.arena.banglalinkmela.app",
+            "net.omobio.robisc",
+            "net.omobio.airtelsc",
+
+            // International & Regional E-Wallets / Banking
             "com.mservice.momotransfer",
             "com.mbmobile",
             "com.vietcombank.phone",
