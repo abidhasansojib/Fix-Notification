@@ -33,7 +33,7 @@ class ShizukuManager(
             Shizuku.addBinderReceivedListener(binderReceivedListener)
             Shizuku.addBinderDeadListener(binderDeadListener)
 
-            // Tự động kiểm tra và yêu cầu quyền ngay khi đăng ký listener lúc mở app
+            // Automatically check and request permission upon registering listener on launch
             checkAndRequestPermissionWithRetry()
         } catch (e: Exception) {
             e.printStackTrace()

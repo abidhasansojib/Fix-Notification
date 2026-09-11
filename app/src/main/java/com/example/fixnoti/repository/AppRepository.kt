@@ -22,7 +22,7 @@ class AppRepository {
         private var cachedRecommendedPackages: Set<String>? = null
 
         private val DEFAULT_RECOMMENDED_PACKAGES = setOf(
-            // Mạng xã hội & Nhắn tin
+            // Social Media & Messaging
             "com.zing.zalo",
             "com.facebook.orca",
             "com.facebook.katana",
@@ -39,7 +39,7 @@ class AppRepository {
             "com.tencent.mm",
             "com.twitter.android",
             "com.skype.raider",
-            // Ngân hàng & Ví điện tử
+            // Banking & E-Wallets
             "com.mservice.momotransfer",
             "com.mbmobile",
             "com.vietcombank.phone",
@@ -107,7 +107,7 @@ class AppRepository {
         val resultPackageNames = mutableSetOf<String>()
         val appInfoMap = mutableMapOf<String, AppInfo>()
 
-        // 1. Thử lấy danh sách package từ PackageManager chuẩn của Android
+        // 1. Attempt to get package list from standard Android PackageManager
         try {
             val packages = pm.getInstalledPackages(PackageManager.GET_META_DATA)
             for (pkg in packages) {
@@ -125,7 +125,7 @@ class AppRepository {
             e.printStackTrace()
         }
 
-        // 2. Nếu Shizuku đã được cấp quyền, lấy thêm từ Shizuku Shell (bỏ qua giới hạn MIUI Security)
+        // 2. If Shizuku permission is granted, query via Shizuku Shell (bypassing MIUI Security restrictions)
         if (ShizukuShellExecutor.isPermissionGranted()) {
             try {
                 val shellOutput = ShizukuShellExecutor.executeCommand("pm list packages")
@@ -143,8 +143,8 @@ class AppRepository {
             }
         }
 
-        // 3. Dự phòng cho MIUI/Xiaomi: Nếu danh sách ứng dụng bị hạn chế do MIUI chặn `getInstalledPackages`,
-        // ta trực tiếp kiểm tra sự tồn tại của các ứng dụng trong danh sách Đề xuất (Banking & MXH) bằng `getApplicationInfo`
+        // 3. Fallback for MIUI/Xiaomi: If app list is restricted because MIUI blocks `getInstalledPackages`,
+        // directly check existence of apps in the Recommended list (Banking & Social) using `getApplicationInfo`
         val recommendedPackages = fetchRecommendedPackageNames()
         val targetPackageSet = if (showAll) {
             resultPackageNames + recommendedPackages + "com.google.android.gms"
@@ -152,7 +152,7 @@ class AppRepository {
             recommendedPackages + "com.google.android.gms"
         }
 
-        // 4. Xây dựng danh sách AppInfo đầy đủ với tên ứng dụng và icon
+        // 4. Construct complete AppInfo list with app label and icon
         for (packageName in targetPackageSet) {
             val isGoogleGms = packageName == "com.google.android.gms"
             if (!showAll && !isGoogleGms && !recommendedPackages.contains(packageName)) {
@@ -184,7 +184,7 @@ class AppRepository {
                     )
                 }
             } catch (e: PackageManager.NameNotFoundException) {
-                // Ứng dụng không thực sự được cài đặt trên máy này
+                // Application is not installed on this device
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -248,42 +248,42 @@ class AppRepository {
         val pkg = app.packageName
 
         // 1. Fix Whitelist
-        onLog(FixLog(name, pkg, "Đang thêm vào DeviceIdle Whitelist (bỏ qua tối ưu pin)..."))
+        onLog(FixLog(name, pkg, "Adding to DeviceIdle Whitelist (bypass battery optimization)..."))
         ShizukuShellExecutor.executeCommand("cmd deviceidle whitelist +$pkg")
 
         // 2. Fix Standby Bucket -> ACTIVE
-        onLog(FixLog(name, pkg, "Đang thiết lập Standby Bucket -> ACTIVE..."))
+        onLog(FixLog(name, pkg, "Setting Standby Bucket -> ACTIVE..."))
         ShizukuShellExecutor.executeCommand("am set-standby-bucket $pkg active")
 
         // 3. Fix AppOp RUN_IN_BACKGROUND -> allow
-        onLog(FixLog(name, pkg, "Đang bật quyền RUN_IN_BACKGROUND -> ALLOW..."))
+        onLog(FixLog(name, pkg, "Enabling RUN_IN_BACKGROUND permission -> ALLOW..."))
         ShizukuShellExecutor.executeCommand("cmd appops set $pkg RUN_IN_BACKGROUND allow")
 
         // 4. Fix AppOp RUN_ANY_IN_BACKGROUND -> allow
-        onLog(FixLog(name, pkg, "Đang bật quyền RUN_ANY_IN_BACKGROUND -> ALLOW..."))
+        onLog(FixLog(name, pkg, "Enabling RUN_ANY_IN_BACKGROUND permission -> ALLOW..."))
         ShizukuShellExecutor.executeCommand("cmd appops set $pkg RUN_ANY_IN_BACKGROUND allow")
 
         // 5. Fix Manage if unused (AUTO_REVOKE_PERMISSIONS_IF_UNUSED) -> ignore
-        onLog(FixLog(name, pkg, "Đang thiết lập Manage if unused -> IGNORE..."))
+        onLog(FixLog(name, pkg, "Setting Manage if unused -> IGNORE..."))
         ShizukuShellExecutor.executeCommand("appops set --user 0 $pkg AUTO_REVOKE_PERMISSIONS_IF_UNUSED ignore")
 
-        // 6. Fix MIUI System Table Keys (Chỉ khi có trong system table)
+        // 6. Fix MIUI System Table Keys (Only if supported in system table)
         if (isSystemSettingKeyPresent("millet_white")) {
-            onLog(FixLog(name, pkg, "Đang thêm vào MIUI System: millet_white..."))
+            onLog(FixLog(name, pkg, "Adding to MIUI System: millet_white..."))
             addToSystemSetting("millet_white", pkg)
         }
 
         if (isSystemSettingKeyPresent("cloud_lowlatency_whitelist")) {
-            onLog(FixLog(name, pkg, "Đang thêm vào MIUI System: cloud_lowlatency_whitelist..."))
+            onLog(FixLog(name, pkg, "Adding to MIUI System: cloud_lowlatency_whitelist..."))
             addToSystemSetting("cloud_lowlatency_whitelist", pkg)
         }
 
         if (isSystemSettingKeyPresent("MILLET_NO_RESTRICT_APP")) {
-            onLog(FixLog(name, pkg, "Đang thêm vào MIUI System: MILLET_NO_RESTRICT_APP..."))
+            onLog(FixLog(name, pkg, "Adding to MIUI System: MILLET_NO_RESTRICT_APP..."))
             addToSystemSetting("MILLET_NO_RESTRICT_APP", pkg)
         }
 
-        onLog(FixLog(name, pkg, "✓ Hoàn thành tối ưu cho $name!", isSuccess = true))
+        onLog(FixLog(name, pkg, "✓ Optimization completed for $name!", isSuccess = true))
 
         // Re-check status to verify fix
         checkAppDetailStatus(pkg)
@@ -299,40 +299,40 @@ class AppRepository {
 
         when (permissionType) {
             "WHITELIST" -> {
-                onLog?.invoke(FixLog(name, pkg, "Đang loại bỏ khỏi DeviceIdle Whitelist..."))
+                onLog?.invoke(FixLog(name, pkg, "Removing from DeviceIdle Whitelist..."))
                 ShizukuShellExecutor.executeCommand("cmd deviceidle whitelist -$pkg")
             }
             "STANDBY_BUCKET" -> {
-                onLog?.invoke(FixLog(name, pkg, "Đang đặt Standby Bucket -> RARE..."))
+                onLog?.invoke(FixLog(name, pkg, "Setting Standby Bucket -> RARE..."))
                 ShizukuShellExecutor.executeCommand("am set-standby-bucket $pkg rare")
             }
             "RUN_IN_BACKGROUND" -> {
-                onLog?.invoke(FixLog(name, pkg, "Đang đặt RUN_IN_BACKGROUND -> IGNORE..."))
+                onLog?.invoke(FixLog(name, pkg, "Setting RUN_IN_BACKGROUND -> IGNORE..."))
                 ShizukuShellExecutor.executeCommand("cmd appops set $pkg RUN_IN_BACKGROUND ignore")
             }
             "RUN_ANY_IN_BACKGROUND" -> {
-                onLog?.invoke(FixLog(name, pkg, "Đang đặt RUN_ANY_IN_BACKGROUND -> IGNORE..."))
+                onLog?.invoke(FixLog(name, pkg, "Setting RUN_ANY_IN_BACKGROUND -> IGNORE..."))
                 ShizukuShellExecutor.executeCommand("cmd appops set $pkg RUN_ANY_IN_BACKGROUND ignore")
             }
             "AUTO_REVOKE_IF_UNUSED" -> {
-                onLog?.invoke(FixLog(name, pkg, "Đang đặt Manage if unused -> ALLOW..."))
+                onLog?.invoke(FixLog(name, pkg, "Setting Manage if unused -> ALLOW..."))
                 ShizukuShellExecutor.executeCommand("appops set --user 0 $pkg AUTO_REVOKE_PERMISSIONS_IF_UNUSED allow")
             }
             "MILLET_WHITE" -> {
                 if (isSystemSettingKeyPresent("millet_white")) {
-                    onLog?.invoke(FixLog(name, pkg, "Đang xóa khỏi MIUI System: millet_white..."))
+                    onLog?.invoke(FixLog(name, pkg, "Removing from MIUI System: millet_white..."))
                     removeFromSystemSetting("millet_white", pkg)
                 }
             }
             "CLOUD_LOWLATENCY" -> {
                 if (isSystemSettingKeyPresent("cloud_lowlatency_whitelist")) {
-                    onLog?.invoke(FixLog(name, pkg, "Đang xóa khỏi MIUI System: cloud_lowlatency_whitelist..."))
+                    onLog?.invoke(FixLog(name, pkg, "Removing from MIUI System: cloud_lowlatency_whitelist..."))
                     removeFromSystemSetting("cloud_lowlatency_whitelist", pkg)
                 }
             }
             "MILLET_NO_RESTRICT" -> {
                 if (isSystemSettingKeyPresent("MILLET_NO_RESTRICT_APP")) {
-                    onLog?.invoke(FixLog(name, pkg, "Đang xóa khỏi MIUI System: MILLET_NO_RESTRICT_APP..."))
+                    onLog?.invoke(FixLog(name, pkg, "Removing from MIUI System: MILLET_NO_RESTRICT_APP..."))
                     removeFromSystemSetting("MILLET_NO_RESTRICT_APP", pkg)
                 }
             }
@@ -350,37 +350,37 @@ class AppRepository {
         val name = app.appName
         val pkg = app.packageName
 
-        onLog(FixLog(name, pkg, "Đang loại bỏ khỏi DeviceIdle Whitelist..."))
+        onLog(FixLog(name, pkg, "Removing from DeviceIdle Whitelist..."))
         ShizukuShellExecutor.executeCommand("cmd deviceidle whitelist -$pkg")
 
-        onLog(FixLog(name, pkg, "Đang đặt lại Standby Bucket -> RARE..."))
+        onLog(FixLog(name, pkg, "Resetting Standby Bucket -> RARE..."))
         ShizukuShellExecutor.executeCommand("am set-standby-bucket $pkg rare")
 
-        onLog(FixLog(name, pkg, "Đang tắt quyền RUN_IN_BACKGROUND -> IGNORE..."))
+        onLog(FixLog(name, pkg, "Disabling RUN_IN_BACKGROUND permission -> IGNORE..."))
         ShizukuShellExecutor.executeCommand("cmd appops set $pkg RUN_IN_BACKGROUND ignore")
 
-        onLog(FixLog(name, pkg, "Đang tắt quyền RUN_ANY_IN_BACKGROUND -> IGNORE..."))
+        onLog(FixLog(name, pkg, "Disabling RUN_ANY_IN_BACKGROUND permission -> IGNORE..."))
         ShizukuShellExecutor.executeCommand("cmd appops set $pkg RUN_ANY_IN_BACKGROUND ignore")
 
-        onLog(FixLog(name, pkg, "Đang đặt lại Manage if unused -> ALLOW..."))
+        onLog(FixLog(name, pkg, "Resetting Manage if unused -> ALLOW..."))
         ShizukuShellExecutor.executeCommand("appops set --user 0 $pkg AUTO_REVOKE_PERMISSIONS_IF_UNUSED allow")
 
         if (isSystemSettingKeyPresent("millet_white")) {
-            onLog(FixLog(name, pkg, "Đang xóa khỏi MIUI System: millet_white..."))
+            onLog(FixLog(name, pkg, "Removing from MIUI System: millet_white..."))
             removeFromSystemSetting("millet_white", pkg)
         }
 
         if (isSystemSettingKeyPresent("cloud_lowlatency_whitelist")) {
-            onLog(FixLog(name, pkg, "Đang xóa khỏi MIUI System: cloud_lowlatency_whitelist..."))
+            onLog(FixLog(name, pkg, "Removing from MIUI System: cloud_lowlatency_whitelist..."))
             removeFromSystemSetting("cloud_lowlatency_whitelist", pkg)
         }
 
         if (isSystemSettingKeyPresent("MILLET_NO_RESTRICT_APP")) {
-            onLog(FixLog(name, pkg, "Đang xóa khỏi MIUI System: MILLET_NO_RESTRICT_APP..."))
+            onLog(FixLog(name, pkg, "Removing from MIUI System: MILLET_NO_RESTRICT_APP..."))
             removeFromSystemSetting("MILLET_NO_RESTRICT_APP", pkg)
         }
 
-        onLog(FixLog(name, pkg, "✓ Hoàn tất hủy bỏ tất cả cấu hình cho $name!", isSuccess = true))
+        onLog(FixLog(name, pkg, "✓ All configurations revoked for $name!", isSuccess = true))
 
         checkAppDetailStatus(pkg)
     }
@@ -411,17 +411,17 @@ class AppRepository {
         val currentRaw = ShizukuShellExecutor.executeCommand("settings get system $key").trim()
         val current = if (currentRaw == "null") "" else currentRaw
 
-        // Tự động phát hiện dấu phân cách (separator) từ chuỗi hiện tại
+        // Automatically detect separator delimiter from existing string
         val isMilletWhite = key.equals("millet_white", ignoreCase = true)
         val delimiter: Char = when {
             isMilletWhite -> ';'
             current.contains(',') -> ','
             current.contains(';') -> ';'
             current.contains(':') -> ':'
-            else -> ',' // Mặc định dùng dấu phẩy cho các key khác ngoại trừ millet_white
+            else -> ',' // Default to comma for keys other than millet_white
         }
 
-        // Tách danh sách hiện tại theo tất cả các dấu phân cách có thể
+        // Split current list by all possible delimiters
         val existingList = current.split(';', ',', ':', ' ')
             .map { it.trim() }
             .filter { it.isNotEmpty() && it != "null" }
@@ -431,7 +431,7 @@ class AppRepository {
             existingList.add(packageName)
         }
 
-        // Tạo chuỗi giá trị mới phù hợp với dấu phân cách
+        // Build new value string matching the separator delimiter
         val newValue = if (delimiter == ';') {
             existingList.joinToString(";") + ";"
         } else {

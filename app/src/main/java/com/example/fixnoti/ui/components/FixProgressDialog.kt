@@ -32,7 +32,7 @@ fun FixProgressDialog(
 ) {
     val listState = rememberLazyListState()
 
-    // Tự động cuộn xuống cuối log khi có log mới
+    // Automatically scroll to latest log entry
     LaunchedEffect(logs.size) {
         if (logs.isNotEmpty()) {
             listState.animateScrollToItem(logs.size - 1)
@@ -60,9 +60,9 @@ fun FixProgressDialog(
                     .fillMaxWidth()
                     .padding(20.dp)
             ) {
-                // Tiêu đề Dialog
+                // Dialog Title
                 Text(
-                    text = if (isFinished) "🎉 Hoàn Tất Tiến Trình Fix!" else "⚡ Đang Tối Ưu Hóa Chạy Nền...",
+                    text = if (isFinished) "🎉 Optimization Completed!" else "⚡ Optimizing Background Execution...",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -70,7 +70,7 @@ fun FixProgressDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // CẢNH BÁO: KHÔNG THOÁT APP (Theo yêu cầu từ người dùng)
+                // WARNING: DO NOT EXIT APP
                 if (!isFinished) {
                     Surface(
                         color = Color(0xFFFFF3E0),
@@ -89,7 +89,7 @@ fun FixProgressDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Vui lòng KHÔNG THOÁT ứng dụng khi tiến trình đang thực thi!",
+                                text = "Please DO NOT exit the app while the process is running!",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFE65100)
@@ -99,10 +99,10 @@ fun FixProgressDialog(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                // App đang xử lý
+                // Current app being processed
                 if (currentApp.isNotEmpty() && !isFinished) {
                     Text(
-                        text = "Đang xử lý: $currentApp",
+                        text = "Processing: $currentApp",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -122,7 +122,7 @@ fun FixProgressDialog(
 
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "${(progress * 100).toInt()}% Hoàn thành",
+                    text = "${(progress * 100).toInt()}% Completed",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.End)
@@ -132,7 +132,7 @@ fun FixProgressDialog(
 
                 // Console Log Window
                 Text(
-                    text = "Nhật ký thực thi (Logs):",
+                    text = "Execution Logs:",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -161,13 +161,13 @@ fun FixProgressDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Nút Đóng Dialog
+                // Close Dialog Button
                 Button(
                     onClick = { onDismiss() },
                     enabled = isFinished,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(text = if (isFinished) "ĐÓNG & HOÀN TẤT" else "ĐANG XỬ LÝ...")
+                    Text(text = if (isFinished) "CLOSE & COMPLETE" else "PROCESSING...")
                 }
             }
         }

@@ -1,4 +1,4 @@
-# Mạng xã hội & Nhắn tin (Social Media & Messaging)
+# Social Media & Messaging
 com.zing.zalo
 com.facebook.orca
 com.facebook.katana
@@ -16,7 +16,7 @@ com.tencent.mm
 com.twitter.android
 com.skype.raider
 
-# Ngân hàng & Ví điện tử (Banking & E-Wallets)
+# Banking & E-Wallets
 com.mservice.momotransfer
 com.mbmobile
 com.vietcombank.phone

@@ -114,7 +114,7 @@ class MainViewModel(
                     isFixFinished = false,
                     fixProgress = 0f,
                     currentFixApp = app.appName,
-                    fixLogs = listOf(FixLog(app.appName, app.packageName, "Bắt đầu tối ưu cho ${app.appName}..."))
+                    fixLogs = listOf(FixLog(app.appName, app.packageName, "Starting optimization for ${app.appName}..."))
                 )
             }
 
@@ -158,7 +158,7 @@ class MainViewModel(
                     isFixFinished = false,
                     fixProgress = 0f,
                     currentFixApp = app.appName,
-                    fixLogs = listOf(FixLog(app.appName, app.packageName, "Bắt đầu hủy bỏ tất cả cấu hình cho ${app.appName}..."))
+                    fixLogs = listOf(FixLog(app.appName, app.packageName, "Starting revocation of all configurations for ${app.appName}..."))
                 )
             }
 
@@ -197,7 +197,7 @@ class MainViewModel(
                     isFixFinished = false,
                     fixProgress = 0f,
                     currentFixApp = "",
-                    fixLogs = listOf(FixLog("Hệ thống", "system", "Khởi tạo tiến trình Fix cho ${selectedApps.size} ứng dụng..."))
+                    fixLogs = listOf(FixLog("System", "system", "Initializing fix process for ${selectedApps.size} apps..."))
                 )
             }
 
@@ -226,7 +226,7 @@ class MainViewModel(
                 it.copy(
                     fixProgress = 1f,
                     isFixFinished = true,
-                    fixLogs = it.fixLogs + FixLog("Hệ thống", "system", "🎉 Hoàn tất sửa chữa toàn bộ ứng dụng đã chọn!", isSuccess = true)
+                    fixLogs = it.fixLogs + FixLog("System", "system", "🎉 Successfully finished optimizing all selected apps!", isSuccess = true)
                 )
             }
         }

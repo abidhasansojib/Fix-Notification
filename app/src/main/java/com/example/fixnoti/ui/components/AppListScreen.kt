@@ -34,7 +34,7 @@ fun AppListScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
-    // Tự động kiểm tra và yêu cầu quyền Shizuku khi màn hình được tạo
+    // Automatically check and request Shizuku permission when screen is created
     LaunchedEffect(Unit) {
         if (!uiState.isShizukuGranted) {
             onRequestShizukuPermission()
@@ -56,14 +56,14 @@ fun AppListScreen(
                             fontSize = 20.sp
                         )
                         Text(
-                            text = "Tối ưu hóa chạy ngầm & thông báo qua Shizuku",
+                            text = "Optimize background & notifications via Shizuku",
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
                 actions = {
-                    // Nút GcmDiagnostics
+                    // GcmDiagnostics button
                     Button(
                         onClick = { viewModel.openGcmDiagnostics() },
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
@@ -84,7 +84,7 @@ fun AppListScreen(
 
                     // Refresh Button
                     IconButton(onClick = { viewModel.loadApps(context) }) {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Tải lại danh sách")
+                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Reload app list")
                     }
 
                     // Shizuku Badge
@@ -105,7 +105,7 @@ fun AppListScreen(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = if (uiState.isShizukuGranted) "Shizuku OK" else "Thiếu Shizuku",
+                                text = if (uiState.isShizukuGranted) "Shizuku OK" else "Shizuku Missing",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (uiState.isShizukuGranted) Color(0xFF2E7D32) else Color(0xFFC62828)
@@ -120,7 +120,7 @@ fun AppListScreen(
                 ExtendedFloatingActionButton(
                     onClick = { viewModel.fixSelectedApps() },
                     icon = { Icon(imageVector = Icons.Default.Build, contentDescription = "Fix") },
-                    text = { Text(text = "FIX THÔNG BÁO ($selectedCount)", fontWeight = FontWeight.Bold) },
+                    text = { Text(text = "FIX NOTIFICATIONS ($selectedCount)", fontWeight = FontWeight.Bold) },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
@@ -132,7 +132,7 @@ fun AppListScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Banner Cảnh báo Shizuku nếu chưa cấp quyền (Tự động mở app hỏi quyền theo feedback)
+            // Shizuku warning banner if permission is not granted
             if (!uiState.isShizukuGranted) {
                 Card(
                     modifier = Modifier
@@ -142,13 +142,13 @@ fun AppListScreen(
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            text = "⚠️ Ứng dụng chưa được cấp quyền Shizuku!",
+                            text = "⚠️ Shizuku permission not granted!",
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Vui lòng khởi chạy Shizuku và bấm nút bên dưới để cấp quyền thực thi lệnh Shell.",
+                            text = "Please launch Shizuku and tap below to grant Shell execution permissions.",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
@@ -157,13 +157,13 @@ fun AppListScreen(
                             onClick = { onRequestShizukuPermission() },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                         ) {
-                            Text(text = "CẤP QUYỀN SHIZUKU NGAY")
+                            Text(text = "GRANT SHIZUKU PERMISSION NOW")
                         }
                     }
                 }
             }
 
-            // Thanh Chuyển Đổi Chế Độ Xem: Ứng dụng Đề xuất vs Tất cả ứng dụng
+            // View mode toggle: Recommended apps vs All apps
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -182,13 +182,13 @@ fun AppListScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (uiState.isShowAllApps) "Đang hiển thị: Tất cả ứng dụng" else "Đang hiển thị: App Đề xuất (Bank & MXH)",
+                            text = if (uiState.isShowAllApps) "Showing: All Applications" else "Showing: Recommended Apps (Bank & Social)",
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
                             color = if (uiState.isShowAllApps) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = if (uiState.isShowAllApps) "Danh sách đầy đủ ứng dụng người dùng đã cài" else "Lọc các ứng dụng Ngân hàng & Mạng xã hội từ GitHub",
+                            text = if (uiState.isShowAllApps) "Complete list of installed user applications" else "Filter Banking & Social Media apps from GitHub",
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -205,7 +205,7 @@ fun AppListScreen(
                         )
                     ) {
                         Text(
-                            text = if (uiState.isShowAllApps) "Chỉ hiện App Đề xuất" else "TẢI TẤT CẢ ỨNG DỤNG",
+                            text = if (uiState.isShowAllApps) "Show Recommended Only" else "LOAD ALL APPS",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -213,20 +213,20 @@ fun AppListScreen(
                 }
             }
 
-            // Thanh tìm kiếm App
+            // App search bar
             OutlinedTextField(
                 value = uiState.searchQuery,
                 onValueChange = { viewModel.onSearchQueryChange(it) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 4.dp),
-                placeholder = { Text(text = "Tìm kiếm ứng dụng...") },
+                placeholder = { Text(text = "Search applications...") },
                 leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search") },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp)
             )
 
-            // Thanh Tích chọn tất cả
+            // Select all bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -240,7 +240,7 @@ fun AppListScreen(
                         onCheckedChange = { viewModel.toggleSelectAll() }
                     )
                     Text(
-                        text = "Tích chọn tất cả (${filteredApps.size} apps)",
+                        text = "Select all (${filteredApps.size} apps)",
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp
                     )
@@ -248,7 +248,7 @@ fun AppListScreen(
 
                 if (selectedCount > 0) {
                     Text(
-                        text = "Đã chọn: $selectedCount",
+                        text = "Selected: $selectedCount",
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 13.sp
@@ -258,7 +258,7 @@ fun AppListScreen(
 
             Divider()
 
-            // Danh sách ứng dụng
+            // Application list
             if (uiState.isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -272,7 +272,7 @@ fun AppListScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Không tìm thấy ứng dụng phù hợp",
+                        text = "No matching applications found",
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -296,7 +296,7 @@ fun AppListScreen(
         }
     }
 
-    // Modal BottomSheet hiển thị chi tiết ứng dụng khi bấm nút (i)
+    // Modal BottomSheet displaying app details when tapping (i)
     uiState.detailApp?.let { app ->
         AppDetailBottomSheet(
             app = app,
@@ -310,7 +310,7 @@ fun AppListScreen(
         )
     }
 
-    // Modal Progress Dialog khi thực thi Fix (Hiển thị Tiến trình & Logs realtime + Cảnh báo không thoát app)
+    // Modal Progress Dialog during Fix execution (Displays real-time progress & logs)
     if (uiState.isFixing) {
         FixProgressDialog(
             progress = uiState.fixProgress,

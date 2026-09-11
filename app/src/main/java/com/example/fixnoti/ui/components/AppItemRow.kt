@@ -46,7 +46,7 @@ fun AppItemRow(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Checkbox chọn app
+            // 1. App selection checkbox
             Checkbox(
                 checked = app.isSelected,
                 onCheckedChange = { onToggleSelect() }
@@ -82,7 +82,7 @@ fun AppItemRow(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // 3. Tên app & Package Name
+            // 3. App label & Package name
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -121,7 +121,7 @@ fun AppItemRow(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                // Badges nếu đã từng check status
+                // Status badges if previously checked
                 app.detailStatus?.let { status ->
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -143,7 +143,7 @@ fun AppItemRow(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // 4. Nút Detail (i) bên phải
+            // 4. Detail info button (i)
             IconButton(
                 onClick = { onOpenDetail() },
                 modifier = Modifier

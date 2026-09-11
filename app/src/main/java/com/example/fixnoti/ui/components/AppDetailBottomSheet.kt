@@ -98,7 +98,7 @@ fun AppDetailBottomSheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Trạng thái Cấu hình Chạy nền & Quyền hệ thống:",
+                text = "Background Configuration & System Permissions Status:",
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.primary
@@ -119,10 +119,10 @@ fun AppDetailBottomSheet(
                 // 1. DeviceIdle Whitelist
                 DetailItemRow(
                     title = "1. DeviceIdle Whitelist",
-                    subtitle = "Danh sách bỏ qua tối ưu hóa pin hệ thống",
+                    subtitle = "Bypass system battery optimization list",
                     isOk = status.isWhitelisted,
-                    statusText = if (status.isWhitelisted) "ĐÃ BỎ QUA TỐI ƯU PIN" else "CHƯA BỎ QUA TỐI ƯU PIN",
-                    actionText = if (status.isWhitelisted) "Thu hồi" else null,
+                    statusText = if (status.isWhitelisted) "BATTERY OPTIMIZATION BYPASSED" else "NOT BYPASSING BATTERY OPTIMIZATION",
+                    actionText = if (status.isWhitelisted) "Revoke" else null,
                     onActionClick = if (status.isWhitelisted) { { onRevokeSinglePermission("WHITELIST") } } else null
                 )
 
@@ -134,75 +134,75 @@ fun AppDetailBottomSheet(
 
                 DetailItemRow(
                     title = "2. Standby Bucket",
-                    subtitle = "Nhóm phân loại ưu tiên chạy ngầm",
+                    subtitle = "Background standby priority bucket",
                     isOk = isBucketOk,
-                    statusText = "Hiện tại: ${status.standbyBucket}",
-                    actionText = if (isBucketOk) "Thu hồi" else null,
+                    statusText = "Current: ${status.standbyBucket}",
+                    actionText = if (isBucketOk) "Revoke" else null,
                     onActionClick = if (isBucketOk) { { onRevokeSinglePermission("STANDBY_BUCKET") } } else null
                 )
 
                 // 3. RUN_IN_BACKGROUND
                 DetailItemRow(
-                    title = "3. Quyền RUN_IN_BACKGROUND",
-                    subtitle = "Cho phép dịch vụ ứng dụng chạy ngầm",
+                    title = "3. RUN_IN_BACKGROUND Permission",
+                    subtitle = "Allow app background service execution",
                     isOk = status.runInBackground.isOk(),
-                    statusText = "Trạng thái: ${status.runInBackground.name}",
-                    actionText = if (status.runInBackground.isOk()) "Thu hồi" else null,
+                    statusText = "Status: ${status.runInBackground.name}",
+                    actionText = if (status.runInBackground.isOk()) "Revoke" else null,
                     onActionClick = if (status.runInBackground.isOk()) { { onRevokeSinglePermission("RUN_IN_BACKGROUND") } } else null
                 )
 
                 // 4. RUN_ANY_IN_BACKGROUND
                 DetailItemRow(
-                    title = "4. Quyền RUN_ANY_IN_BACKGROUND",
-                    subtitle = "Cho phép tác vụ ngầm/Alarm/Broadcast",
+                    title = "4. RUN_ANY_IN_BACKGROUND Permission",
+                    subtitle = "Allow background tasks/alarms/broadcasts",
                     isOk = status.runAnyInBackground.isOk(),
-                    statusText = "Trạng thái: ${status.runAnyInBackground.name}",
-                    actionText = if (status.runAnyInBackground.isOk()) "Thu hồi" else null,
+                    statusText = "Status: ${status.runAnyInBackground.name}",
+                    actionText = if (status.runAnyInBackground.isOk()) "Revoke" else null,
                     onActionClick = if (status.runAnyInBackground.isOk()) { { onRevokeSinglePermission("RUN_ANY_IN_BACKGROUND") } } else null
                 )
 
                 // 5. Auto Start (10008)
                 val autoStartText = when (status.autoStart) {
-                    OpStatus.ALLOWED -> "ĐÃ BẬT (ALLOW)"
-                    OpStatus.IGNORED -> "ĐÃ TẮT (IGNORE)"
-                    OpStatus.DENIED -> "ĐÃ TẮT (DENY)"
+                    OpStatus.ALLOWED -> "ENABLED (ALLOW)"
+                    OpStatus.IGNORED -> "DISABLED (IGNORE)"
+                    OpStatus.DENIED -> "DISABLED (DENY)"
                     OpStatus.DEFAULT -> "Default"
-                    OpStatus.UNKNOWN -> "Không lấy được giá trị"
+                    OpStatus.UNKNOWN -> "Unable to retrieve value"
                 }
                 DetailItemRow(
-                    title = "5. Auto Start (Tự khởi chạy)",
-                    subtitle = "Quyền tự khởi chạy hệ thống (AppOp 10008)",
+                    title = "5. Auto Start",
+                    subtitle = "System auto-start permission (AppOp 10008)",
                     isOk = status.autoStart.isOk(),
                     statusText = autoStartText,
-                    actionText = "Sửa quyền",
+                    actionText = "Settings",
                     onActionClick = { onOpenAppSettings() }
                 )
 
                 // 6. Manage if unused (AUTO_REVOKE_PERMISSIONS_IF_UNUSED)
                 val isAutoRevokeOk = status.autoRevokePermissions == OpStatus.IGNORED
                 val autoRevokeStatusText = when (status.autoRevokePermissions) {
-                    OpStatus.IGNORED -> "ĐÃ TẮT TỰ THU HỒI (IGNORE - An toàn)"
-                    OpStatus.ALLOWED -> "ĐÃ BẬT TỰ THU HỒI (ALLOW - Nguy cơ mất quyền)"
-                    OpStatus.DENIED -> "ĐÃ TẮT (DENY)"
+                    OpStatus.IGNORED -> "AUTO-REVOKE DISABLED (IGNORE - Safe)"
+                    OpStatus.ALLOWED -> "AUTO-REVOKE ENABLED (ALLOW - Risk of losing perms)"
+                    OpStatus.DENIED -> "DISABLED (DENY)"
                     OpStatus.DEFAULT -> "Default"
-                    OpStatus.UNKNOWN -> "Không lấy được giá trị"
+                    OpStatus.UNKNOWN -> "Unable to retrieve value"
                 }
                 DetailItemRow(
                     title = "6. Manage if unused",
-                    subtitle = "Tự động thu hồi quyền khi không dùng (AUTO_REVOKE_PERMISSIONS_IF_UNUSED)",
+                    subtitle = "Auto-revoke permissions if app is unused",
                     isOk = isAutoRevokeOk,
                     statusText = autoRevokeStatusText,
-                    actionText = if (isAutoRevokeOk) "Thu hồi" else null,
+                    actionText = if (isAutoRevokeOk) "Revoke" else null,
                     onActionClick = if (isAutoRevokeOk) { { onRevokeSinglePermission("AUTO_REVOKE_IF_UNUSED") } } else null
                 )
 
                 if (status.isMilletWhiteSupported) {
                     DetailItemRow(
                         title = "7. MIUI millet_white",
-                        subtitle = "Danh sách trắng Millet Freeze Killer",
+                        subtitle = "Millet Freeze Killer whitelist",
                         isOk = status.isMilletWhite,
-                        statusText = if (status.isMilletWhite) "ĐÃ CÓ TRONG MILLET_WHITE" else "CHƯA CÓ TRONG MILLET_WHITE",
-                        actionText = if (status.isMilletWhite) "Thu hồi" else null,
+                        statusText = if (status.isMilletWhite) "INCLUDED IN MILLET_WHITE" else "NOT IN MILLET_WHITE",
+                        actionText = if (status.isMilletWhite) "Revoke" else null,
                         onActionClick = if (status.isMilletWhite) { { onRevokeSinglePermission("MILLET_WHITE") } } else null
                     )
                 }
@@ -210,10 +210,10 @@ fun AppDetailBottomSheet(
                 if (status.isCloudLowLatencySupported) {
                     DetailItemRow(
                         title = "8. MIUI cloud_lowlatency_whitelist",
-                        subtitle = "Danh sách ưu tiên độ trễ thấp Cloud",
+                        subtitle = "Cloud low-latency priority list",
                         isOk = status.isCloudLowLatency,
-                        statusText = if (status.isCloudLowLatency) "ĐÃ CÓ TRONG LOWLATENCY_WHITELIST" else "CHƯA CÓ TRONG LOWLATENCY_WHITELIST",
-                        actionText = if (status.isCloudLowLatency) "Thu hồi" else null,
+                        statusText = if (status.isCloudLowLatency) "INCLUDED IN LOWLATENCY_WHITELIST" else "NOT IN LOWLATENCY_WHITELIST",
+                        actionText = if (status.isCloudLowLatency) "Revoke" else null,
                         onActionClick = if (status.isCloudLowLatency) { { onRevokeSinglePermission("CLOUD_LOWLATENCY") } } else null
                     )
                 }
@@ -221,17 +221,17 @@ fun AppDetailBottomSheet(
                 if (status.isMilletNoRestrictSupported) {
                     DetailItemRow(
                         title = "9. MIUI MILLET_NO_RESTRICT_APP",
-                        subtitle = "Danh sách ứng dụng Millet không hạn chế",
+                        subtitle = "Millet unrestricted app list",
                         isOk = status.isMilletNoRestrict,
-                        statusText = if (status.isMilletNoRestrict) "ĐÃ CÓ TRONG MILLET_NO_RESTRICT" else "CHƯA CÓ TRONG MILLET_NO_RESTRICT",
-                        actionText = if (status.isMilletNoRestrict) "Thu hồi" else null,
+                        statusText = if (status.isMilletNoRestrict) "INCLUDED IN MILLET_NO_RESTRICT" else "NOT IN MILLET_NO_RESTRICT",
+                        actionText = if (status.isMilletNoRestrict) "Revoke" else null,
                         onActionClick = if (status.isMilletNoRestrict) { { onRevokeSinglePermission("MILLET_NO_RESTRICT") } } else null
                     )
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Nút Sửa riêng ứng dụng này
+                // Button: Optimize this app individually
                 Button(
                     onClick = { onFixSingleApp() },
                     modifier = Modifier
@@ -241,12 +241,12 @@ fun AppDetailBottomSheet(
                 ) {
                     Icon(imageVector = Icons.Outlined.Build, contentDescription = "Fix App")
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "CẤP QUYỀN / TỐI ƯU RIÊNG APP NÀY", fontWeight = FontWeight.Bold)
+                    Text(text = "OPTIMIZE THIS APP", fontWeight = FontWeight.Bold)
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Nút Xóa toàn bộ quyền đối với app đang xem
+                // Button: Reset all configurations to default
                 OutlinedButton(
                     onClick = { onRevokeAllPermissions() },
                     modifier = Modifier
@@ -259,7 +259,7 @@ fun AppDetailBottomSheet(
                 ) {
                     Icon(imageVector = Icons.Outlined.Delete, contentDescription = "Revoke All")
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "XÓA BỎ TOÀN BỘ QUYỀN VỀ MẶC ĐỊNH", fontWeight = FontWeight.Bold)
+                    Text(text = "RESET ALL SETTINGS TO DEFAULT", fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -311,7 +311,7 @@ fun DetailItemRow(
                 modifier = Modifier.height(32.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = if (actionText == "Sửa quyền") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    contentColor = if (actionText == "Settings") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                 )
             ) {
                 Text(

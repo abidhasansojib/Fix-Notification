@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Quyền truy cập danh sách tất cả các ứng dụng cài đặt (Android 11+) -->
+    <!-- Permission to query all installed packages (Android 11+) -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-    <!-- Quyền truy cập Internet để fetch danh sách ứng dụng đề xuất từ GitHub -->
+    <!-- Internet permission to fetch recommended apps list from GitHub/CDN -->
     <uses-permission android:name="android.permission.INTERNET" />
     
     <application

@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Đăng ký Shizuku Listener & Tự động xin quyền khi ứng dụng khởi chạy
+        // Register Shizuku listener & automatically request permission on app launch
         shizukuManager = ShizukuManager { isGranted ->
             viewModel.updateShizukuStatus(isGranted)
             if (isGranted) {
@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
         }
         shizukuManager.registerListeners()
 
-        // Tải danh sách app khi mở app
+        // Load app list on launch
         viewModel.loadApps(applicationContext)
 
         setContent {
@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Tự động kiểm tra & hỏi quyền Shizuku nếu chưa được cấp khi quay lại màn hình
+        // Check & request Shizuku permission on resume if not yet granted
         shizukuManager.checkAndRequestPermissionWithRetry()
     }
 
