@@ -15,8 +15,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 class AppRepository {
 
     companion object {
-        private const val JSDELIVR_RAW_URL = "https://cdn.jsdelivr.net/gh/optimus0701/Fix-Noti-Xiaomi@master/user_apps.txt"
-        private const val GITHUB_RAW_URL = "https://raw.githubusercontent.com/optimus0701/Fix-Noti-Xiaomi/master/user_apps.txt"
+        private const val JSDELIVR_RAW_URL = "https://cdn.jsdelivr.net/gh/abidhasansojib/Fix-Notification@master/user_apps.txt"
+        private const val GITHUB_RAW_URL = "https://raw.githubusercontent.com/abidhasansojib/Fix-Notification/master/user_apps.txt"
 
         @Volatile
         private var cachedRecommendedPackages: Set<String>? = null

@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Fix-Noti-Xiaomi"
+rootProject.name = "Fix-Notification"
 include(":app")
