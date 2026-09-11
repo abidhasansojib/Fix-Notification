@@ -12,15 +12,20 @@ class ShizukuManager(
     private val requestCode = 1001
     private val handler = Handler(Looper.getMainLooper())
 
+    /**
+     * Automatically requests permission only once per app session.
+     * Prevents re-prompting dialog repeatedly when returning to the app on onResume.
+     */
+    private var hasAutoRequested = false
+
     private val permissionListener = Shizuku.OnRequestPermissionResultListener { reqCode, grantResult ->
         if (reqCode == requestCode) {
-            val granted = grantResult == PackageManager.PERMISSION_GRANTED
-            onPermissionResult(granted)
+            onPermissionResult(grantResult == PackageManager.PERMISSION_GRANTED)
         }
     }
 
     private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
-        checkAndRequestPermission()
+        refresh(userInitiated = false)
     }
 
     private val binderDeadListener = Shizuku.OnBinderDeadListener {
@@ -33,8 +38,7 @@ class ShizukuManager(
             Shizuku.addBinderReceivedListener(binderReceivedListener)
             Shizuku.addBinderDeadListener(binderDeadListener)
 
-            // Automatically check and request permission upon registering listener on launch
-            checkAndRequestPermissionWithRetry()
+            requestWithRetry(userInitiated = false)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -51,17 +55,26 @@ class ShizukuManager(
         }
     }
 
-    fun checkAndRequestPermissionWithRetry(retryCount: Int = 3) {
-        if (checkAndRequestPermission()) return
+    /** Explicitly requested by user clicking the grant button. */
+    fun requestPermissionByUser() {
+        hasAutoRequested = false
+        requestWithRetry(userInitiated = true)
+    }
+
+    /** Refresh status without prompting dialog. Safe for onResume. */
+    fun refreshStatusOnly() {
+        onPermissionResult(ShizukuShellExecutor.isPermissionGranted())
+    }
+
+    private fun requestWithRetry(userInitiated: Boolean, retryCount: Int = 3) {
+        if (refresh(userInitiated)) return
 
         if (retryCount > 0 && !ShizukuShellExecutor.isShizukuAvailable()) {
-            handler.postDelayed({
-                checkAndRequestPermissionWithRetry(retryCount - 1)
-            }, 500)
+            handler.postDelayed({ requestWithRetry(userInitiated, retryCount - 1) }, 500)
         }
     }
 
-    fun checkAndRequestPermission(): Boolean {
+    private fun refresh(userInitiated: Boolean): Boolean {
         if (!ShizukuShellExecutor.isShizukuAvailable()) {
             onPermissionResult(false)
             return false
@@ -72,8 +85,14 @@ class ShizukuManager(
                 onPermissionResult(true)
                 true
             } else {
-                Shizuku.requestPermission(requestCode)
-                false
+                onPermissionResult(false)
+                if (userInitiated || !hasAutoRequested) {
+                    hasAutoRequested = true
+                    Shizuku.requestPermission(requestCode)
+                    true
+                } else {
+                    false
+                }
             }
         } catch (e: Exception) {
             onPermissionResult(false)

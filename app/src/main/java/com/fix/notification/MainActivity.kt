@@ -18,21 +18,22 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
     private lateinit var shizukuManager: ShizukuManager
+    private var wasGranted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        // Register Shizuku listener & automatically request permission on app launch
         shizukuManager = ShizukuManager { isGranted ->
             viewModel.updateShizukuStatus(isGranted)
-            if (isGranted) {
+            if (isGranted && !wasGranted) {
                 viewModel.loadApps(applicationContext)
             }
+            wasGranted = isGranted
         }
         shizukuManager.registerListeners()
 
-        // Load app list on launch
+        // Initial app load
         viewModel.loadApps(applicationContext)
 
         setContent {
@@ -44,7 +45,7 @@ class MainActivity : ComponentActivity() {
                     AppListScreen(
                         viewModel = viewModel,
                         onRequestShizukuPermission = {
-                            shizukuManager.checkAndRequestPermissionWithRetry()
+                            shizukuManager.requestPermissionByUser()
                         }
                     )
                 }
@@ -54,8 +55,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Check & request Shizuku permission on resume if not yet granted
-        shizukuManager.checkAndRequestPermissionWithRetry()
+        // Only refresh status on resume without repeatedly prompting the user
+        shizukuManager.refreshStatusOnly()
     }
 
     override fun onDestroy() {
@@ -63,4 +64,3 @@ class MainActivity : ComponentActivity() {
         shizukuManager.unregisterListeners()
     }
 }
-

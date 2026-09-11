@@ -15,3 +15,5 @@
 keystore.properties
 *.log
 .kotlin/*
+__pycache__/
+*.pyc

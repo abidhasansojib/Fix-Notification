@@ -187,10 +187,14 @@ fun FixProgressDialog(
                     LazyColumn(state = listState) {
                         items(logs) { log ->
                             Text(
-                                text = if (log.appName == "System") log.actionText else "[${log.appName}] ${log.actionText}",
+                                text = if (log.appName == "System" || log.appName == "Action Required" || log.appName == "Notice") log.actionText else "[${log.appName}] ${log.actionText}",
                                 fontSize = 11.sp,
                                 fontFamily = FontFamily.Monospace,
-                                color = if (log.isSuccess) Color(0xFF4ADE80) else Color(0xFFFBBF24),
+                                color = when {
+                                    log.isError -> Color(0xFFFF8A80)
+                                    log.isSuccess -> Color(0xFF4ADE80)
+                                    else -> Color(0xFFFBBF24)
+                                },
                                 modifier = Modifier.padding(vertical = 1.dp)
                             )
                         }

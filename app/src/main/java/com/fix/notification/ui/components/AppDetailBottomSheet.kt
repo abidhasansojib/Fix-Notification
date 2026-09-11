@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -40,9 +39,12 @@ fun AppDetailBottomSheet(
     isLoading: Boolean,
     onDismiss: () -> Unit,
     onFixSingleApp: () -> Unit,
+    onEnableSinglePermission: (String) -> Unit,
     onRevokeSinglePermission: (String) -> Unit,
     onRevokeAllPermissions: () -> Unit,
-    onOpenAppSettings: () -> Unit
+    onOpenAppSettings: () -> Unit,
+    onOpenNotificationSettings: () -> Unit,
+    onOpenAutoStartSettings: () -> Unit
 ) {
     val iconBitmap = remember(app.packageName, app.icon) {
         app.icon?.toBitmap()?.asImageBitmap()
@@ -139,53 +141,79 @@ fun AppDetailBottomSheet(
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // 1. DeviceIdle Whitelist
+                    var itemIndex = 0
+
+                    // 1. Notification Permission (Prerequisite)
+                    val notificationText = when (status.notifications) {
+                        OpStatus.ALLOWED -> "ENABLED"
+                        OpStatus.DEFAULT -> "ENABLED (Default)"
+                        OpStatus.IGNORED -> "DISABLED (Blocked)"
+                        OpStatus.DENIED -> "DISABLED (Blocked)"
+                        OpStatus.UNKNOWN -> "UNKNOWN"
+                    }
                     DetailCardItem(
-                        title = "1. Battery Optimization Whitelist",
-                        subtitle = "Bypass Android Doze and battery saving restrictions",
+                        title = "${++itemIndex}. Notification Permission",
+                        subtitle = "Required for alerts. If blocked in Android Settings, background fixes cannot show alerts",
+                        isOk = status.isNotificationOk,
+                        statusBadge = notificationText,
+                        actionText = if (status.needsManualNotifications) "Settings" else null,
+                        onActionClick = if (status.needsManualNotifications) { { onOpenNotificationSettings() } } else null
+                    )
+
+                    // 2. DeviceIdle Whitelist
+                    DetailCardItem(
+                        title = "${++itemIndex}. Battery Optimization Whitelist",
+                        subtitle = "Bypass Android Doze and deep sleep power saving",
                         isOk = status.isWhitelisted,
                         statusBadge = if (status.isWhitelisted) "BYPASS ACTIVE" else "NOT BYPASSED",
-                        actionText = if (status.isWhitelisted) "Revoke" else null,
-                        onActionClick = if (status.isWhitelisted) { { onRevokeSinglePermission("WHITELIST") } } else null
+                        actionText = if (status.isWhitelisted) "Revoke" else "Enable",
+                        onActionClick = {
+                            if (status.isWhitelisted) onRevokeSinglePermission("WHITELIST")
+                            else onEnableSinglePermission("WHITELIST")
+                        }
                     )
 
-                    // 2. Standby Bucket
-                    val isBucketOk = status.standbyBucket.contains("ACTIVE", ignoreCase = true) ||
-                            status.standbyBucket.contains("EXEMPTED", ignoreCase = true) ||
-                            status.standbyBucket.contains("10") ||
-                            status.standbyBucket.contains("5")
-                    val cleanBucket = status.standbyBucket.replace("STANDBY_BUCKET_", "")
-
+                    // 3. Standby Bucket
                     DetailCardItem(
-                        title = "2. Standby Priority Bucket",
+                        title = "${++itemIndex}. Standby Priority Bucket",
                         subtitle = "Ensures background tasks receive highest CPU priority",
-                        isOk = isBucketOk,
-                        statusBadge = cleanBucket,
-                        actionText = if (isBucketOk) "Revoke" else null,
-                        onActionClick = if (isBucketOk) { { onRevokeSinglePermission("STANDBY_BUCKET") } } else null
+                        isOk = status.isBucketOk,
+                        statusBadge = status.standbyBucket.replace("STANDBY_BUCKET_", ""),
+                        actionText = if (status.isBucketOk) "Revoke" else "Enable",
+                        onActionClick = {
+                            if (status.isBucketOk) onRevokeSinglePermission("STANDBY_BUCKET")
+                            else onEnableSinglePermission("STANDBY_BUCKET")
+                        }
                     )
 
-                    // 3. RUN_IN_BACKGROUND
+                    // 4. RUN_IN_BACKGROUND
                     DetailCardItem(
-                        title = "3. Background Service (AppOp 63)",
+                        title = "${++itemIndex}. Background Service (AppOp 63)",
                         subtitle = "Allow service execution when app is in background",
                         isOk = status.runInBackground.isOk(),
                         statusBadge = status.runInBackground.name,
-                        actionText = if (status.runInBackground.isOk()) "Revoke" else null,
-                        onActionClick = if (status.runInBackground.isOk()) { { onRevokeSinglePermission("RUN_IN_BACKGROUND") } } else null
+                        actionText = if (status.runInBackground.isOk()) "Revoke" else "Enable",
+                        onActionClick = {
+                            if (status.runInBackground.isOk()) onRevokeSinglePermission("RUN_IN_BACKGROUND")
+                            else onEnableSinglePermission("RUN_IN_BACKGROUND")
+                        }
                     )
 
-                    // 4. RUN_ANY_IN_BACKGROUND
+                    // 5. RUN_ANY_IN_BACKGROUND
                     DetailCardItem(
-                        title = "4. Any Background Task (AppOp 70)",
+                        title = "${++itemIndex}. Any Background Task (AppOp 70)",
                         subtitle = "Allow alarms, broadcasts, and jobs in background",
                         isOk = status.runAnyInBackground.isOk(),
                         statusBadge = status.runAnyInBackground.name,
-                        actionText = if (status.runAnyInBackground.isOk()) "Revoke" else null,
-                        onActionClick = if (status.runAnyInBackground.isOk()) { { onRevokeSinglePermission("RUN_ANY_IN_BACKGROUND") } } else null
+                        actionText = if (status.runAnyInBackground.isOk()) "Revoke" else "Enable",
+                        onActionClick = {
+                            if (status.runAnyInBackground.isOk()) onRevokeSinglePermission("RUN_ANY_IN_BACKGROUND")
+                            else onEnableSinglePermission("RUN_ANY_IN_BACKGROUND")
+                        }
                     )
 
-                    // 5. Auto Start
+                    // 6. Auto Start
+                    val isAutoStartOk = status.autoStart.isOk()
                     val autoStartText = when (status.autoStart) {
                         OpStatus.ALLOWED -> "ALLOWED"
                         OpStatus.IGNORED -> "IGNORED"
@@ -194,15 +222,20 @@ fun AppDetailBottomSheet(
                         OpStatus.UNKNOWN -> "UNKNOWN"
                     }
                     DetailCardItem(
-                        title = "5. MIUI Auto-Start (AppOp 10008)",
-                        subtitle = "Allow launch on device boot and notifications",
-                        isOk = status.autoStart.isOk(),
+                        title = "${++itemIndex}. MIUI Auto-Start (AppOp 10008)",
+                        subtitle = if (isAutoStartOk) "Allow launch on device boot and notifications" else "Toggle via Shizuku. If blocked by security, tap Settings",
+                        isOk = isAutoStartOk,
                         statusBadge = autoStartText,
-                        actionText = "Settings",
-                        onActionClick = { onOpenAppSettings() }
+                        actionText = if (isAutoStartOk) "Revoke" else "Enable",
+                        onActionClick = {
+                            if (isAutoStartOk) onRevokeSinglePermission("AUTO_START")
+                            else onEnableSinglePermission("AUTO_START")
+                        },
+                        secondaryActionText = "Settings",
+                        onSecondaryActionClick = { onOpenAutoStartSettings() }
                     )
 
-                    // 6. Manage if unused
+                    // 7. Manage if unused
                     val isAutoRevokeOk = status.autoRevokePermissions == OpStatus.IGNORED
                     val autoRevokeBadge = when (status.autoRevokePermissions) {
                         OpStatus.IGNORED -> "DISABLED (SAFE)"
@@ -212,44 +245,56 @@ fun AppDetailBottomSheet(
                         OpStatus.UNKNOWN -> "UNKNOWN"
                     }
                     DetailCardItem(
-                        title = "6. Auto-Revoke if Unused",
+                        title = "${++itemIndex}. Auto-Revoke if Unused",
                         subtitle = "Prevent Android from stripping permissions if unused",
                         isOk = isAutoRevokeOk,
                         statusBadge = autoRevokeBadge,
-                        actionText = if (isAutoRevokeOk) "Revoke" else null,
-                        onActionClick = if (isAutoRevokeOk) { { onRevokeSinglePermission("AUTO_REVOKE_IF_UNUSED") } } else null
+                        actionText = if (isAutoRevokeOk) "Revoke" else "Enable",
+                        onActionClick = {
+                            if (isAutoRevokeOk) onRevokeSinglePermission("AUTO_REVOKE_IF_UNUSED")
+                            else onEnableSinglePermission("AUTO_REVOKE_IF_UNUSED")
+                        }
                     )
 
                     if (status.isMilletWhiteSupported) {
                         DetailCardItem(
-                            title = "7. MIUI Millet White",
+                            title = "${++itemIndex}. MIUI Millet White",
                             subtitle = "Millet deep freeze killer whitelist",
                             isOk = status.isMilletWhite,
                             statusBadge = if (status.isMilletWhite) "WHITELISTED" else "NOT WHITELISTED",
-                            actionText = if (status.isMilletWhite) "Revoke" else null,
-                            onActionClick = if (status.isMilletWhite) { { onRevokeSinglePermission("MILLET_WHITE") } } else null
+                            actionText = if (status.isMilletWhite) "Revoke" else "Enable",
+                            onActionClick = {
+                                if (status.isMilletWhite) onRevokeSinglePermission("MILLET_WHITE")
+                                else onEnableSinglePermission("MILLET_WHITE")
+                            }
                         )
                     }
 
                     if (status.isCloudLowLatencySupported) {
                         DetailCardItem(
-                            title = "8. MIUI Low Latency Whitelist",
+                            title = "${++itemIndex}. MIUI Low Latency Whitelist",
                             subtitle = "Cloud low-latency network & push priority",
                             isOk = status.isCloudLowLatency,
                             statusBadge = if (status.isCloudLowLatency) "WHITELISTED" else "NOT WHITELISTED",
-                            actionText = if (status.isCloudLowLatency) "Revoke" else null,
-                            onActionClick = if (status.isCloudLowLatency) { { onRevokeSinglePermission("CLOUD_LOWLATENCY") } } else null
+                            actionText = if (status.isCloudLowLatency) "Revoke" else "Enable",
+                            onActionClick = {
+                                if (status.isCloudLowLatency) onRevokeSinglePermission("CLOUD_LOWLATENCY")
+                                else onEnableSinglePermission("CLOUD_LOWLATENCY")
+                            }
                         )
                     }
 
                     if (status.isMilletNoRestrictSupported) {
                         DetailCardItem(
-                            title = "9. MIUI Millet No Restrict",
+                            title = "${++itemIndex}. MIUI Millet No Restrict",
                             subtitle = "Exempt from aggressive MIUI background restriction",
                             isOk = status.isMilletNoRestrict,
                             statusBadge = if (status.isMilletNoRestrict) "UNRESTRICTED" else "RESTRICTED",
-                            actionText = if (status.isMilletNoRestrict) "Revoke" else null,
-                            onActionClick = if (status.isMilletNoRestrict) { { onRevokeSinglePermission("MILLET_NO_RESTRICT") } } else null
+                            actionText = if (status.isMilletNoRestrict) "Revoke" else "Enable",
+                            onActionClick = {
+                                if (status.isMilletNoRestrict) onRevokeSinglePermission("MILLET_NO_RESTRICT")
+                                else onEnableSinglePermission("MILLET_NO_RESTRICT")
+                            }
                         )
                     }
                 }
@@ -300,7 +345,9 @@ fun DetailCardItem(
     isOk: Boolean,
     statusBadge: String,
     actionText: String? = null,
-    onActionClick: (() -> Unit)? = null
+    onActionClick: (() -> Unit)? = null,
+    secondaryActionText: String? = null,
+    onSecondaryActionClick: (() -> Unit)? = null
 ) {
     Card(
         shape = RoundedCornerShape(10.dp),
@@ -362,8 +409,24 @@ fun DetailCardItem(
                     modifier = Modifier.weight(1f)
                 )
 
+                if (secondaryActionText != null && onSecondaryActionClick != null) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    TextButton(
+                        onClick = onSecondaryActionClick,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        modifier = Modifier.height(28.dp)
+                    ) {
+                        Text(
+                            text = secondaryActionText,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
                 if (actionText != null && onActionClick != null) {
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     TextButton(
                         onClick = onActionClick,
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
@@ -373,7 +436,7 @@ fun DetailCardItem(
                             text = actionText,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (actionText == "Settings") MaterialTheme.colorScheme.primary else ErrorRed
+                            color = if (actionText == "Revoke") ErrorRed else MaterialTheme.colorScheme.primary
                         )
                     }
                 }

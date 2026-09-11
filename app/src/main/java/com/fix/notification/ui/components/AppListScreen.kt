@@ -437,9 +437,12 @@ fun AppListScreen(
             isLoading = uiState.isDetailLoading,
             onDismiss = { viewModel.closeAppDetail() },
             onFixSingleApp = { viewModel.fixAppFromDetail(app) },
+            onEnableSinglePermission = { permType -> viewModel.enableSinglePermission(app, permType) },
             onRevokeSinglePermission = { permType -> viewModel.revokeSinglePermission(app, permType) },
             onRevokeAllPermissions = { viewModel.revokeAllPermissionsFromDetail(app) },
-            onOpenAppSettings = { viewModel.openAppSettings(app.packageName) }
+            onOpenAppSettings = { viewModel.openAppSettings(app.packageName) },
+            onOpenNotificationSettings = { viewModel.openNotificationSettings(app.packageName) },
+            onOpenAutoStartSettings = { viewModel.openAutoStartSettings(app.packageName) }
         )
     }
 

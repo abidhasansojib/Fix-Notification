@@ -13,6 +13,11 @@ enum class OpStatus {
 }
 
 data class AppDetailStatus(
+    /**
+     * App notification permission status (checked via dumpsys notification importance).
+     * If disabled, background optimizations will not show notifications to the user.
+     */
+    val notifications: OpStatus = OpStatus.UNKNOWN,
     val isWhitelisted: Boolean = false,
     val standbyBucket: String = "UNKNOWN",
     val runInBackground: OpStatus = OpStatus.UNKNOWN,
@@ -26,15 +31,32 @@ data class AppDetailStatus(
     val isMilletNoRestrictSupported: Boolean = false,
     val isMilletNoRestrict: Boolean = false
 ) {
-    fun isAllOptimized(isGms: Boolean = false): Boolean {
-        val isBucketOk = standbyBucket.contains("ACTIVE", ignoreCase = true) ||
-                standbyBucket.contains("EXEMPTED", ignoreCase = true) ||
-                standbyBucket.contains("10") ||
-                standbyBucket.contains("5")
+    val isBucketOk: Boolean
+        get() = standbyBucket.startsWith("ACTIVE") ||
+                standbyBucket.startsWith("EXEMPTED") ||
+                standbyBucket == "10" ||
+                standbyBucket == "5"
 
-        val autoStartOk = autoStart.isOk() || autoStart == OpStatus.UNKNOWN
-        val autoRevokeOk = autoRevokePermissions == OpStatus.IGNORED || autoRevokePermissions == OpStatus.UNKNOWN
-        val baseOk = isWhitelisted && isBucketOk && runInBackground.isOk() && runAnyInBackground.isOk() && autoStartOk && autoRevokeOk
+    /** Confirmed active notification permission. UNKNOWN is not considered OK. */
+    val isNotificationOk: Boolean
+        get() = notifications == OpStatus.ALLOWED || notifications == OpStatus.DEFAULT
+
+    /** True only if notifications are explicitly disabled / blocked. */
+    val needsManualNotifications: Boolean
+        get() = notifications == OpStatus.IGNORED || notifications == OpStatus.DENIED
+
+    /** True if autostart is blocked on Xiaomi / MIUI ROMs. DEFAULT means device/ROM lacks this op. */
+    val needsManualAutoStart: Boolean
+        get() = autoStart != OpStatus.ALLOWED && autoStart != OpStatus.DEFAULT
+
+    fun isAllOptimized(isGms: Boolean = false): Boolean {
+        val baseOk = isNotificationOk &&
+                isWhitelisted &&
+                isBucketOk &&
+                runInBackground.isOk() &&
+                runAnyInBackground.isOk() &&
+                !needsManualAutoStart &&
+                autoRevokePermissions == OpStatus.IGNORED
 
         val milletWhiteOk = !isMilletWhiteSupported || isMilletWhite
         val cloudLowLatencyOk = !isCloudLowLatencySupported || isCloudLowLatency
@@ -50,6 +72,8 @@ data class AppInfo(
     val icon: Drawable? = null,
     val isSelected: Boolean = false,
     val isGoogleGms: Boolean = false,
+    /** True if package is only discovered via Shizuku because MIUI PackageManager concealed it. */
+    val isHiddenByMiui: Boolean = false,
     val detailStatus: AppDetailStatus? = null
 )
 
@@ -57,5 +81,7 @@ data class FixLog(
     val appName: String,
     val packageName: String,
     val actionText: String,
-    val isSuccess: Boolean = true
+    val isSuccess: Boolean = true,
+    /** True when a shell command genuinely failed — rendered in error red in log console. */
+    val isError: Boolean = false
 )

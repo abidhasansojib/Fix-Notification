@@ -14,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -136,6 +135,14 @@ fun AppItemRow(
                     }
                 }
 
+                if (app.isHiddenByMiui) {
+                    Text(
+                        text = "Concealed by MIUI — detected via Shizuku",
+                        fontSize = 10.sp,
+                        color = WarningAmber
+                    )
+                }
+
                 Text(
                     text = app.packageName,
                     fontSize = 11.sp,
@@ -167,14 +174,9 @@ fun AppItemRow(
                                 .lowercase()
                                 .replaceFirstChar { it.uppercase() }
 
-                            val isBucketOk = status.standbyBucket.contains("ACTIVE", ignoreCase = true) ||
-                                    status.standbyBucket.contains("EXEMPTED", ignoreCase = true) ||
-                                    status.standbyBucket.contains("10") ||
-                                    status.standbyBucket.contains("5")
-
                             BadgeChip(
                                 text = "Bucket: $cleanBucket",
-                                isSuccess = isBucketOk
+                                isSuccess = status.isBucketOk
                             )
                         }
                     }

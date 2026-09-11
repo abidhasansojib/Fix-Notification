@@ -136,6 +136,20 @@ class MainViewModel(
         }
     }
 
+    fun enableSinglePermission(app: AppInfo, permissionType: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDetailLoading = true) }
+            val newStatus = repository.enableSinglePermission(app, permissionType)
+            _uiState.update {
+                it.copy(
+                    isDetailLoading = false,
+                    detailStatus = newStatus,
+                    appList = updateAppDetailInList(it.appList, app.packageName, newStatus)
+                )
+            }
+        }
+    }
+
     fun revokeSinglePermission(app: AppInfo, permissionType: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isDetailLoading = true) }
@@ -186,6 +200,18 @@ class MainViewModel(
         }
     }
 
+    fun openNotificationSettings(packageName: String) {
+        viewModelScope.launch {
+            repository.openNotificationSettings(packageName)
+        }
+    }
+
+    fun openAutoStartSettings(packageName: String) {
+        viewModelScope.launch {
+            repository.openAutoStartSettings(packageName)
+        }
+    }
+
     fun fixSelectedApps() {
         val selectedApps = _uiState.value.appList.filter { it.isSelected }
         if (selectedApps.isEmpty()) return
@@ -197,36 +223,42 @@ class MainViewModel(
                     isFixFinished = false,
                     fixProgress = 0f,
                     currentFixApp = "",
-                    fixLogs = listOf(FixLog("System", "system", "Initializing fix process for ${selectedApps.size} apps..."))
+                    fixLogs = listOf(FixLog("System", "system", "Initializing optimization for ${selectedApps.size} apps..."))
                 )
             }
 
             val total = selectedApps.size
-            var currentAppList = _uiState.value.appList
 
-            selectedApps.forEachIndexed { index, app ->
-                _uiState.update {
-                    it.copy(
-                        currentFixApp = app.appName,
-                        fixProgress = (index + 1).toFloat() / total
-                    )
-                }
-
-                val newStatus = repository.fixApp(app) { log ->
-                    _uiState.update { state ->
-                        state.copy(fixLogs = state.fixLogs + log)
+            val statuses = repository.fixApps(
+                apps = selectedApps,
+                onLog = { log ->
+                    _uiState.update { state -> state.copy(fixLogs = state.fixLogs + log) }
+                },
+                onAppStart = { app, index ->
+                    _uiState.update {
+                        it.copy(
+                            currentFixApp = app.appName,
+                            fixProgress = index.toFloat() / total
+                        )
                     }
                 }
+            )
 
-                currentAppList = updateAppDetailInList(currentAppList, app.packageName, newStatus)
-                _uiState.update { it.copy(appList = currentAppList) }
+            val errorCount = _uiState.value.fixLogs.count { it.isError }
+            val summary = if (errorCount == 0) {
+                FixLog("System", "system", "🎉 Successfully finished optimizing $total apps with 0 errors!", isSuccess = true)
+            } else {
+                FixLog("System", "system", "⚠️ Completed $total apps with $errorCount failed command(s) (highlighted in red above).", isSuccess = false, isError = true)
             }
 
-            _uiState.update {
-                it.copy(
+            _uiState.update { state ->
+                var list = state.appList
+                statuses.forEach { (pkg, status) -> list = updateAppDetailInList(list, pkg, status) }
+                state.copy(
+                    appList = list,
                     fixProgress = 1f,
                     isFixFinished = true,
-                    fixLogs = it.fixLogs + FixLog("System", "system", "🎉 Successfully finished optimizing all selected apps!", isSuccess = true)
+                    fixLogs = state.fixLogs + summary
                 )
             }
         }
