@@ -95,7 +95,7 @@ fun AppListScreen(
 
                     // Refresh Button
                     IconButton(
-                        onClick = { viewModel.loadApps(context) },
+                        onClick = { viewModel.loadApps(context, forceRefresh = true) },
                         modifier = Modifier.size(40.dp)
                     ) {
                         Icon(
@@ -294,6 +294,22 @@ fun AppListScreen(
                             color = if (!isRecommended) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                }
+            }
+
+            // Mode Hint
+            if (isRecommended) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Filtered by repo list (${filteredApps.size} installed). Select 'All Applications' to see all apps.",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    )
                 }
             }
 

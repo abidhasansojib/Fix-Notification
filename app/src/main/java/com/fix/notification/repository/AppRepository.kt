@@ -41,8 +41,8 @@ data class SettingTable(
 class AppRepository {
 
     companion object {
-        private const val JSDELIVR_RAW_URL = "https://cdn.jsdelivr.net/gh/abidhasansojib/Fix-Notification@master/user_apps.txt"
         private const val GITHUB_RAW_URL = "https://raw.githubusercontent.com/abidhasansojib/Fix-Notification/master/user_apps.txt"
+        private const val JSDELIVR_RAW_URL = "https://cdn.jsdelivr.net/gh/abidhasansojib/Fix-Notification@master/user_apps.txt"
 
         private const val GMS_PACKAGE = "com.google.android.gms"
 
@@ -104,6 +104,27 @@ class AppRepository {
             "net.omobio.robisc",
             "net.omobio.airtelsc",
 
+            // VPN, DNS & Network Utilities
+            "com.cloudflare.onedotonedotonedotone",
+            "com.wireguard.android",
+            "com.adguard.android",
+            "ch.protonvpn.android",
+
+            // Productivity, Email & Workplace Messaging
+            "com.google.android.gm",
+            "com.google.android.apps.messaging",
+            "com.google.android.apps.maps",
+            "com.google.android.calendar",
+            "com.microsoft.office.outlook",
+            "com.microsoft.teams",
+            "com.Slack",
+
+            // Other Popular Apps
+            "com.reddit.frontpage",
+            "com.snapchat.android",
+            "com.spotify.music",
+            "com.google.android.youtube",
+
             // International & Regional E-Wallets / Banking
             "com.mservice.momotransfer",
             "com.mbmobile",
@@ -128,17 +149,22 @@ class AppRepository {
 
     // ---------------------------------------------------------------- App Discovery
 
-    suspend fun fetchRecommendedPackageNames(): Set<String> = withContext(Dispatchers.IO) {
-        cachedRecommendedPackages?.let { return@withContext it }
+    suspend fun fetchRecommendedPackageNames(forceRefresh: Boolean = false): Set<String> = withContext(Dispatchers.IO) {
+        if (!forceRefresh) {
+            cachedRecommendedPackages?.let { return@withContext it }
+        }
 
-        for (urlString in listOf(JSDELIVR_RAW_URL, GITHUB_RAW_URL)) {
+        for (urlString in listOf(GITHUB_RAW_URL, JSDELIVR_RAW_URL)) {
             try {
-                val result = withTimeoutOrNull(2500L) {
-                    val connection = java.net.URL(urlString).openConnection() as java.net.HttpURLConnection
-                    connection.connectTimeout = 2000
-                    connection.readTimeout = 2000
+                val result = withTimeoutOrNull(3000L) {
+                    val url = java.net.URL(if (forceRefresh) "$urlString?t=${System.currentTimeMillis()}" else urlString)
+                    val connection = url.openConnection() as java.net.HttpURLConnection
+                    connection.useCaches = false
+                    connection.connectTimeout = 2500
+                    connection.readTimeout = 2500
                     connection.requestMethod = "GET"
                     connection.setRequestProperty("User-Agent", "FixNotification/1.0")
+                    connection.setRequestProperty("Cache-Control", "no-cache")
 
                     if (connection.responseCode == java.net.HttpURLConnection.HTTP_OK) {
                         val text = connection.inputStream.bufferedReader().use { it.readText() }
@@ -158,25 +184,31 @@ class AppRepository {
             }
         }
 
-        cachedRecommendedPackages = DEFAULT_RECOMMENDED_PACKAGES
-        DEFAULT_RECOMMENDED_PACKAGES
+        val fallback = cachedRecommendedPackages ?: DEFAULT_RECOMMENDED_PACKAGES
+        cachedRecommendedPackages = fallback
+        fallback
     }
 
     /**
      * Retrieves user-installed applications.
      * Uses `pm list packages -3 --user 0` via Shizuku as the primary source to detect apps hidden by MIUI.
      */
-    suspend fun getInstalledApps(context: Context, showAll: Boolean = false): List<AppInfo> = withContext(Dispatchers.IO) {
+    suspend fun getInstalledApps(context: Context, showAll: Boolean = false, forceRefresh: Boolean = false): List<AppInfo> = withContext(Dispatchers.IO) {
         val pm = context.packageManager
         val userPackages = mutableSetOf<String>()
 
-        // 1. Primary source: pm list packages -3 via Shizuku (bypasses MIUI PackageManager restrictions)
+        // 1. Primary source: pm list packages via Shizuku (bypasses MIUI PackageManager restrictions)
         if (ShizukuShellExecutor.isPermissionGranted()) {
-            val shellOutput = ShizukuShellExecutor.executeCommand("pm list packages -3 --user 0")
-            shellOutput.lines()
-                .map { it.trim().removePrefix("package:").trim() }
-                .filter { it.isNotEmpty() && !it.contains(' ') }
-                .forEach { userPackages.add(it) }
+            var shellOutput = ShizukuShellExecutor.executeCommand("pm list packages -3 --user 0")
+            if (shellOutput.isBlank() || shellOutput.startsWith("Error", ignoreCase = true) || shellOutput.contains("Exception", ignoreCase = true)) {
+                shellOutput = ShizukuShellExecutor.executeCommand("pm list packages -3")
+            }
+            if (shellOutput.isNotBlank() && !shellOutput.startsWith("Error", ignoreCase = true)) {
+                shellOutput.lines()
+                    .map { it.trim().removePrefix("package:").trim() }
+                    .filter { it.isNotEmpty() && !it.contains(' ') }
+                    .forEach { userPackages.add(it) }
+            }
         }
 
         // 2. Secondary source: Android PackageManager
@@ -189,7 +221,21 @@ class AppRepository {
             e.printStackTrace()
         }
 
-        val recommendedPackages = fetchRecommendedPackageNames()
+        val recommendedPackages = fetchRecommendedPackageNames(forceRefresh)
+
+        // 3. Robust MIUI Fallback: Direct getApplicationInfo probe for all recommended apps.
+        // MIUI frequently restricts `pm.getInstalledPackages` and Shizuku might not yet be
+        // ready on initial startup. Direct getApplicationInfo queries bypass MIUI enumeration blocks.
+        for (pkg in recommendedPackages) {
+            try {
+                val appInfo = pm.getApplicationInfo(pkg, 0)
+                if (appInfo != null) {
+                    userPackages.add(pkg)
+                }
+            } catch (ignored: Exception) {
+            }
+        }
+
         val targetPackages = if (showAll) {
             userPackages + GMS_PACKAGE
         } else {

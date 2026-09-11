@@ -45,6 +45,27 @@ com.arena.banglalinkmela.app
 net.omobio.robisc
 net.omobio.airtelsc
 
+# VPN, DNS & Network Utilities
+com.cloudflare.onedotonedotonedotone
+com.wireguard.android
+com.adguard.android
+ch.protonvpn.android
+
+# Productivity, Email & Workplace Messaging
+com.google.android.gm
+com.google.android.apps.messaging
+com.google.android.apps.maps
+com.google.android.calendar
+com.microsoft.office.outlook
+com.microsoft.teams
+com.Slack
+
+# Other Popular Apps
+com.reddit.frontpage
+com.snapchat.android
+com.spotify.music
+com.google.android.youtube
+
 # Vietnam & International E-Wallets & Banking
 com.mservice.momotransfer
 com.mbmobile

@@ -41,11 +41,11 @@ class MainViewModel(
         _uiState.update { it.copy(isShizukuGranted = isGranted) }
     }
 
-    fun loadApps(context: Context, showAll: Boolean? = null) {
+    fun loadApps(context: Context, showAll: Boolean? = null, forceRefresh: Boolean = false) {
         viewModelScope.launch {
             val targetShowAll = showAll ?: _uiState.value.isShowAllApps
             _uiState.update { it.copy(isLoading = true, isShowAllApps = targetShowAll) }
-            val apps = repository.getInstalledApps(context, targetShowAll)
+            val apps = repository.getInstalledApps(context, targetShowAll, forceRefresh)
             val isGranted = ShizukuShellExecutor.isPermissionGranted()
             _uiState.update {
                 it.copy(
