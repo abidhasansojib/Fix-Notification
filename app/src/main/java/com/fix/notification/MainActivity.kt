@@ -3,16 +3,16 @@ package com.fix.notification
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.fix.notification.shizuku.ShizukuManager
 import com.fix.notification.ui.MainViewModel
 import com.fix.notification.ui.components.AppListScreen
+import com.fix.notification.ui.theme.FixNotificationTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -20,6 +20,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var shizukuManager: ShizukuManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         // Register Shizuku listener & automatically request permission on app launch
@@ -63,10 +64,3 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun FixNotificationTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = lightColorScheme(),
-        content = content
-    )
-}
