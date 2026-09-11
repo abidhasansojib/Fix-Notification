@@ -1,4 +1,4 @@
-package com.example.fixnoti.model
+package com.fix.notification.model
 
 import android.graphics.drawable.Drawable
 

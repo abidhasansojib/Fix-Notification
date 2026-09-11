@@ -1,4 +1,4 @@
-package com.example.fixnoti
+package com.fix.notification
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -10,9 +10,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.example.fixnoti.shizuku.ShizukuManager
-import com.example.fixnoti.ui.MainViewModel
-import com.example.fixnoti.ui.components.AppListScreen
+import com.fix.notification.shizuku.ShizukuManager
+import com.fix.notification.ui.MainViewModel
+import com.fix.notification.ui.components.AppListScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
         viewModel.loadApps(applicationContext)
 
         setContent {
-            FixNotiTheme {
+            FixNotificationTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun FixNotiTheme(content: @Composable () -> Unit) {
+fun FixNotificationTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = lightColorScheme(),
         content = content

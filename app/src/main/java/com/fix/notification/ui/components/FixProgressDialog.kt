@@ -1,4 +1,4 @@
-package com.example.fixnoti.ui.components
+package com.fix.notification.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.fixnoti.model.FixLog
+import com.fix.notification.model.FixLog
 
 @Composable
 fun FixProgressDialog(

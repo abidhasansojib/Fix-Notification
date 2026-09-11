@@ -1,13 +1,13 @@
-package com.example.fixnoti.repository
+package com.fix.notification.repository
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import com.example.fixnoti.model.AppDetailStatus
-import com.example.fixnoti.model.AppInfo
-import com.example.fixnoti.model.FixLog
-import com.example.fixnoti.model.OpStatus
-import com.example.fixnoti.shizuku.ShizukuShellExecutor
+import com.fix.notification.model.AppDetailStatus
+import com.fix.notification.model.AppInfo
+import com.fix.notification.model.FixLog
+import com.fix.notification.model.OpStatus
+import com.fix.notification.shizuku.ShizukuShellExecutor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -73,7 +73,7 @@ class AppRepository {
                     connection.connectTimeout = 2000
                     connection.readTimeout = 2000
                     connection.requestMethod = "GET"
-                    connection.setRequestProperty("User-Agent", "FixNotiXiaomi/1.0")
+                    connection.setRequestProperty("User-Agent", "FixNotification/1.0")
 
                     if (connection.responseCode == java.net.HttpURLConnection.HTTP_OK) {
                         val text = connection.inputStream.bufferedReader().use { it.readText() }

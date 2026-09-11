@@ -1,4 +1,4 @@
-package com.example.fixnoti.ui.components
+package com.fix.notification.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,9 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
-import com.example.fixnoti.model.AppDetailStatus
-import com.example.fixnoti.model.AppInfo
-import com.example.fixnoti.model.OpStatus
+import com.fix.notification.model.AppDetailStatus
+import com.fix.notification.model.AppInfo
+import com.fix.notification.model.OpStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

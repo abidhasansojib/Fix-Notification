@@ -1,4 +1,4 @@
-package com.example.fixnoti.ui.components
+package com.fix.notification.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,8 +22,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.fixnoti.ui.MainUiState
-import com.example.fixnoti.ui.MainViewModel
+import com.fix.notification.ui.MainUiState
+import com.fix.notification.ui.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,7 +51,7 @@ fun AppListScreen(
                 title = {
                     Column {
                         Text(
-                            text = "FixNoti Xiaomi",
+                            text = "Fix Notification",
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp
                         )

@@ -1,4 +1,4 @@
-package com.example.fixnoti.shizuku
+package com.fix.notification.shizuku
 
 import android.content.pm.PackageManager
 import android.os.Handler

@@ -14,11 +14,11 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.fixnoti"
+    namespace = "com.fix.notification"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.fixnoti"
+        applicationId = "com.fix.notification"
         minSdk = 24
         targetSdk = 34
         versionCode = 2

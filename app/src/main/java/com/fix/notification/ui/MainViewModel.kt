@@ -1,13 +1,13 @@
-package com.example.fixnoti.ui
+package com.fix.notification.ui
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fixnoti.model.AppDetailStatus
-import com.example.fixnoti.model.AppInfo
-import com.example.fixnoti.model.FixLog
-import com.example.fixnoti.repository.AppRepository
-import com.example.fixnoti.shizuku.ShizukuShellExecutor
+import com.fix.notification.model.AppDetailStatus
+import com.fix.notification.model.AppInfo
+import com.fix.notification.model.FixLog
+import com.fix.notification.repository.AppRepository
+import com.fix.notification.shizuku.ShizukuShellExecutor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

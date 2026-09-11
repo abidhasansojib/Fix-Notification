@@ -1,6 +1,6 @@
-# 🚀 Fix-Noti-Xiaomi
+# 🚀 Fix Notification
 
-**Fix-Noti-Xiaomi** is a dedicated Android application designed to resolve **notification delay** issues on Xiaomi, Redmi, and POCO devices (especially on China ROMs, MIUI, and HyperOS).
+**Fix Notification** is a dedicated Android application designed to resolve **notification delay** issues on Xiaomi, Redmi, and POCO devices (especially on China ROMs, MIUI, and HyperOS).
 
 The app leverages **[Shizuku](https://shizuku.rikka.app/)** to directly interact with low-level Android system services, optimizing apps **WITHOUT ROOT** or unlocking the bootloader.
 
@@ -27,7 +27,7 @@ Notification delays on Xiaomi devices (especially China ROMs) are primarily caus
 2. **AppOps Restrictions**: Xiaomi restricts background execution permissions for third-party apps.
 3. **Millet Power Management**: The aggressive MIUI/HyperOS background freezer automatically "freezes" apps within minutes of screen timeout.
 
-**Fix-Noti-Xiaomi** resolves these bottlenecks by executing administrative commands directly through the Shizuku Service, promoting selected apps to top system priority.
+**Fix Notification** resolves these bottlenecks by executing administrative commands directly through the Shizuku Service, promoting selected apps to top system priority.
 
 ---
 
@@ -42,7 +42,7 @@ Notification delays on Xiaomi devices (especially China ROMs) are primarily caus
 
 1. Download and install **Shizuku** from Google Play or GitHub.
 2. Start the Shizuku service (via Wireless Debugging on device or using ADB via PC).
-3. Open **Fix-Noti-Xiaomi** and grant Shizuku permission when prompted.
+3. Open **Fix Notification** and grant Shizuku permission when prompted.
 4. Select the apps you want to fix notification delays for, and tap **"FIX NOTIFICATIONS"**.
 
 ---

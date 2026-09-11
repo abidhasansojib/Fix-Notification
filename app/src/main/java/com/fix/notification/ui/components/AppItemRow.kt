@@ -1,4 +1,4 @@
-package com.example.fixnoti.ui.components
+package com.fix.notification.ui.components
 
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.Image
@@ -21,7 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
-import com.example.fixnoti.model.AppInfo
+import com.fix.notification.model.AppInfo
 
 @Composable
 fun AppItemRow(

@@ -1,4 +1,4 @@
-package com.example.fixnoti.shizuku
+package com.fix.notification.shizuku
 
 import rikka.shizuku.Shizuku
 import java.io.BufferedReader
