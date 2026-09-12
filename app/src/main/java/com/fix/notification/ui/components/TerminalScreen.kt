@@ -33,6 +33,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -81,8 +82,10 @@ fun TerminalScreen(
     var historyIndex by remember { mutableIntStateOf(-1) }
     val listState = rememberLazyListState()
 
-    // Auto-scroll to bottom when new command output arrives
-    LaunchedEffect(entries.size, isExecuting) {
+    // Auto-scroll to bottom when new command output arrives or when keyboard opens
+    val density = LocalDensity.current
+    val imeBottom = WindowInsets.ime.getBottom(density)
+    LaunchedEffect(entries.size, isExecuting, imeBottom) {
         if (entries.isNotEmpty()) {
             listState.animateScrollToItem(entries.size)
         }
@@ -96,329 +99,337 @@ fun TerminalScreen(
     }
 
     CompositionLocalProvider(LocalTextSelectionColors provides customTextSelectionColors) {
-        Scaffold(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(TerminalBg)
-                .imePadding(),
-            containerColor = TerminalBg,
-            contentColor = OutputTextColor,
-            topBar = {
-                // Top App Bar
-                TopAppBar(
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back to apps",
-                                tint = Color.White
-                            )
-                        }
-                    },
-                    title = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = "ADB Shell",
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = Color.White
-                            )
-
-                            // Status badge
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (isShizukuGranted) Color(0xFF1F3D2B) else Color(0xFF3D1F23)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(if (isShizukuGranted) PromptColor else ErrorColor)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = if (isShizukuGranted) "uid=2000" else "offline",
-                                        fontSize = 10.sp,
-                                        fontFamily = FontFamily.Monospace,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (isShizukuGranted) PromptColor else ErrorColor
-                                    )
-                                }
-                            }
-                        }
-                    },
-                    actions = {
-                        // Copy entire session
-                        IconButton(
-                            onClick = {
-                                if (entries.isNotEmpty()) {
-                                    val transcript = entries.joinToString("\n\n") { entry ->
-                                        val out = if (entry.stdout.isNotBlank()) "\n${entry.stdout}" else ""
-                                        val err = if (entry.stderr.isNotBlank()) "\n[stderr]\n${entry.stderr}" else ""
-                                        "❯ ${entry.command}$out$err (exit ${entry.exitCode})"
-                                    }
-                                    clipboardManager.setText(AnnotatedString(transcript))
-                                    Toast.makeText(context, "Session copied to clipboard", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ContentCopy,
-                                contentDescription = "Copy all output",
-                                tint = SubduedGray
-                            )
-                        }
-
-                        // Clear terminal buffer
-                        IconButton(onClick = onClear) {
-                            Icon(
-                                imageVector = Icons.Default.DeleteOutline,
-                                contentDescription = "Clear terminal",
-                                tint = SubduedGray
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = TerminalSurface,
-                        titleContentColor = Color.White,
-                        navigationIconContentColor = Color.White,
-                        actionIconContentColor = SubduedGray
-                    )
-                )
-            },
-            bottomBar = {
-                // Command Input & Navigation Bar
-                Surface(
-                    color = TerminalSurface,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+        ) {
+            // 1. Fixed Top App Bar (Padded for status bar via TopAppBarDefaults)
+            TopAppBar(
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back to apps",
+                            tint = Color.White
+                        )
+                    }
+                },
+                title = {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Command History Navigation (Up/Down)
-                        if (history.isNotEmpty()) {
-                            IconButton(
-                                onClick = {
-                                    if (historyIndex < history.size - 1) {
-                                        historyIndex++
-                                        inputText = history[history.size - 1 - historyIndex]
-                                    }
-                                },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowUp,
-                                    contentDescription = "Previous command",
-                                    tint = if (historyIndex < history.size - 1) AccentCyan else SubduedGray,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-
-                            IconButton(
-                                onClick = {
-                                    if (historyIndex > 0) {
-                                        historyIndex--
-                                        inputText = history[history.size - 1 - historyIndex]
-                                    } else if (historyIndex == 0) {
-                                        historyIndex = -1
-                                        inputText = ""
-                                    }
-                                },
-                                modifier = Modifier.size(32.dp),
-                                enabled = historyIndex >= 0
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "Next command",
-                                    tint = if (historyIndex >= 0) AccentCyan else SubduedGray.copy(alpha = 0.3f),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-
-                        // Prompt indicator
                         Text(
-                            text = "❯",
+                            text = "ADB Shell",
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = PromptColor,
-                            modifier = Modifier.padding(start = 4.dp, end = 6.dp)
+                            fontSize = 16.sp,
+                            color = Color.White
                         )
 
-                        // Input Field
-                        OutlinedTextField(
-                            value = inputText,
-                            onValueChange = {
-                                inputText = it
-                                historyIndex = -1
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .focusRequester(focusRequester),
-                            placeholder = {
-                                Text(
-                                    text = "e.g. cmd appops get <pkg> 10008",
-                                    fontSize = 12.sp,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = SubduedGray.copy(alpha = 0.5f)
-                                )
-                            },
-                            textStyle = TextStyle(
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 13.sp,
-                                color = Color.White
-                            ),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Send,
-                                keyboardType = KeyboardType.Ascii,
-                                autoCorrect = false
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onSend = {
-                                    if (inputText.isNotBlank() && !isExecuting) {
-                                        onExecuteCommand(inputText)
-                                        inputText = ""
-                                        historyIndex = -1
-                                    }
-                                }
-                            ),
-                            trailingIcon = {
-                                if (inputText.isNotEmpty()) {
-                                    IconButton(onClick = { inputText = "" }, modifier = Modifier.size(24.dp)) {
-                                        Icon(
-                                            imageVector = Icons.Default.Clear,
-                                            contentDescription = "Clear input",
-                                            tint = SubduedGray,
-                                            modifier = Modifier.size(15.dp)
-                                        )
-                                    }
-                                }
-                            },
-                            shape = RoundedCornerShape(8.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = TerminalBg,
-                                unfocusedContainerColor = TerminalBg,
-                                focusedBorderColor = AccentCyan,
-                                unfocusedBorderColor = TerminalBorder,
-                                cursorColor = PromptColor
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.width(6.dp))
-
-                        // Run / Send Button
-                        IconButton(
-                            onClick = {
-                                if (inputText.isNotBlank() && !isExecuting) {
-                                    onExecuteCommand(inputText)
-                                    inputText = ""
-                                    historyIndex = -1
-                                    keyboardController?.hide()
-                                }
-                            },
-                            enabled = inputText.isNotBlank() && !isExecuting,
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (inputText.isNotBlank() && !isExecuting) AccentCyan else TerminalBorder.copy(alpha = 0.6f))
+                        // Status badge
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isShizukuGranted) Color(0xFF1F3D2B) else Color(0xFF3D1F23)
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = "Execute Command",
-                                tint = if (inputText.isNotBlank() && !isExecuting) Color.Black else SubduedGray,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isShizukuGranted) PromptColor else ErrorColor)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isShizukuGranted) "uid=2000" else "offline",
+                                    fontSize = 10.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isShizukuGranted) PromptColor else ErrorColor
+                                )
+                            }
+                        }
+                    }
+                },
+                actions = {
+                    // Copy entire session
+                    IconButton(
+                        onClick = {
+                            if (entries.isNotEmpty()) {
+                                val transcript = entries.joinToString("\n\n") { entry ->
+                                    val out = if (entry.stdout.isNotBlank()) "\n${entry.stdout}" else ""
+                                    val err = if (entry.stderr.isNotBlank()) "\n[stderr]\n${entry.stderr}" else ""
+                                    "❯ ${entry.command}$out$err (exit ${entry.exitCode})"
+                                }
+                                clipboardManager.setText(AnnotatedString(transcript))
+                                Toast.makeText(context, "Session copied to clipboard", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = "Copy all output",
+                            tint = SubduedGray
+                        )
+                    }
+
+                    // Clear terminal buffer
+                    IconButton(onClick = onClear) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Clear terminal",
+                            tint = SubduedGray
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = TerminalSurface,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White,
+                    actionIconContentColor = SubduedGray
+                )
+            )
+
+            HorizontalDivider(color = TerminalBorder, thickness = 1.dp)
+
+            // 2. Terminal Console Screen (Flexibly occupies all remaining vertical space)
+            SelectionContainer(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .background(TerminalBg)
+            ) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Banner
+                    item {
+                        SelectionContainer {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(TerminalSurface.copy(alpha = 0.5f))
+                                    .border(1.dp, TerminalBorder.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = "ADB Shell",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = AccentCyan
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Execute ADB shell commands directly. Type 'help' for examples or 'clear' to wipe buffer.",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 10.sp,
+                                    lineHeight = 14.sp,
+                                    color = SubduedGray
+                                )
+                            }
+                        }
+                    }
+
+                    // Command Entries
+                    items(items = entries, key = { it.id }) { entry ->
+                        TerminalEntryView(
+                            entry = entry,
+                            onCopy = {
+                                val textToCopy = entry.stdout.ifEmpty { entry.stderr }
+                                if (textToCopy.isNotBlank()) {
+                                    clipboardManager.setText(AnnotatedString(textToCopy))
+                                    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
+                    }
+
+                    // Executing Progress indicator
+                    if (isExecuting) {
+                        item {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(12.dp),
+                                    strokeWidth = 2.dp,
+                                    color = PromptColor
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Executing in Shizuku shell...",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 11.sp,
+                                    color = PromptColor
+                                )
+                            }
                         }
                     }
                 }
             }
-        ) { paddingValues ->
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+
+            HorizontalDivider(color = TerminalBorder, thickness = 1.dp)
+
+            // 3. Command Input Bar (Smoothly elevated directly above the keyboard with no gaps)
+            Surface(
+                color = TerminalSurface,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                // Banner
-                item {
-                    SelectionContainer {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(TerminalSurface.copy(alpha = 0.5f))
-                                .border(1.dp, TerminalBorder.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Command History Navigation (Up/Down)
+                    if (history.isNotEmpty()) {
+                        IconButton(
+                            onClick = {
+                                if (historyIndex < history.size - 1) {
+                                    historyIndex++
+                                    inputText = history[history.size - 1 - historyIndex]
+                                }
+                            },
+                            modifier = Modifier.size(32.dp)
                         ) {
-                            Text(
-                                text = "ADB Shell",
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                color = AccentCyan
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowUp,
+                                contentDescription = "Previous command",
+                                tint = if (historyIndex < history.size - 1) AccentCyan else SubduedGray,
+                                modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "Execute ADB shell commands directly. Type 'help' for examples or 'clear' to wipe buffer.",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 10.sp,
-                                lineHeight = 14.sp,
-                                color = SubduedGray
+                        }
+
+                        IconButton(
+                            onClick = {
+                                if (historyIndex > 0) {
+                                    historyIndex--
+                                    inputText = history[history.size - 1 - historyIndex]
+                                } else if (historyIndex == 0) {
+                                    historyIndex = -1
+                                    inputText = ""
+                                }
+                            },
+                            modifier = Modifier.size(32.dp),
+                            enabled = historyIndex >= 0
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Next command",
+                                tint = if (historyIndex >= 0) AccentCyan else SubduedGray.copy(alpha = 0.3f),
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
-                }
 
-                // Command Entries
-                items(items = entries, key = { it.id }) { entry ->
-                    TerminalEntryView(
-                        entry = entry,
-                        onCopy = {
-                            val textToCopy = entry.stdout.ifEmpty { entry.stderr }
-                            if (textToCopy.isNotBlank()) {
-                                clipboardManager.setText(AnnotatedString(textToCopy))
-                                Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
-                            }
-                        }
+                    // Prompt indicator
+                    Text(
+                        text = "❯",
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = PromptColor,
+                        modifier = Modifier.padding(start = 4.dp, end = 6.dp)
                     )
-                }
 
-                // Executing Progress indicator
-                if (isExecuting) {
-                    item {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(12.dp),
-                                strokeWidth = 2.dp,
-                                color = PromptColor
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                    // Input Field (Single line, strictly constrained height)
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = {
+                            inputText = it
+                            historyIndex = -1
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(focusRequester),
+                        placeholder = {
                             Text(
-                                text = "Executing in Shizuku shell...",
+                                text = "e.g. cmd appops get <pkg> 10008",
+                                fontSize = 12.sp,
                                 fontFamily = FontFamily.Monospace,
-                                fontSize = 11.sp,
-                                color = PromptColor
+                                maxLines = 1,
+                                color = SubduedGray.copy(alpha = 0.5f)
                             )
-                        }
+                        },
+                        textStyle = TextStyle(
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 13.sp,
+                            color = Color.White
+                        ),
+                        singleLine = true,
+                        maxLines = 1,
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Send,
+                            keyboardType = KeyboardType.Ascii,
+                            autoCorrect = false
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onSend = {
+                                if (inputText.isNotBlank() && !isExecuting) {
+                                    onExecuteCommand(inputText)
+                                    inputText = ""
+                                    historyIndex = -1
+                                }
+                            }
+                        ),
+                        trailingIcon = {
+                            if (inputText.isNotEmpty()) {
+                                IconButton(onClick = { inputText = "" }, modifier = Modifier.size(24.dp)) {
+                                    Icon(
+                                        imageVector = Icons.Default.Clear,
+                                        contentDescription = "Clear input",
+                                        tint = SubduedGray,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = TerminalBg,
+                            unfocusedContainerColor = TerminalBg,
+                            focusedBorderColor = AccentCyan,
+                            unfocusedBorderColor = TerminalBorder,
+                            cursorColor = PromptColor
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    // Run / Send Button
+                    IconButton(
+                        onClick = {
+                            if (inputText.isNotBlank() && !isExecuting) {
+                                onExecuteCommand(inputText)
+                                inputText = ""
+                                historyIndex = -1
+                                keyboardController?.hide()
+                            }
+                        },
+                        enabled = inputText.isNotBlank() && !isExecuting,
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (inputText.isNotBlank() && !isExecuting) AccentCyan else TerminalBorder.copy(alpha = 0.6f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Execute Command",
+                            tint = if (inputText.isNotBlank() && !isExecuting) Color.Black else SubduedGray,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
             }
