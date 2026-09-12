@@ -17,14 +17,35 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
+import android.util.LruCache
 import com.fix.notification.model.AppInfo
 import com.fix.notification.ui.theme.SuccessGreen
 import com.fix.notification.ui.theme.SuccessGreenContainer
 import com.fix.notification.ui.theme.WarningAmber
 import com.fix.notification.ui.theme.WarningAmberContainer
+
+/**
+ * Global LRU cache for application icons to avoid re-converting Drawables to Bitmaps on every scroll.
+ */
+object IconCache {
+    private val cache = LruCache<String, ImageBitmap>(300)
+
+    fun getOrConvert(packageName: String, drawable: android.graphics.drawable.Drawable?): ImageBitmap? {
+        if (drawable == null) return null
+        cache.get(packageName)?.let { return it }
+        return try {
+            val bitmap = drawable.toBitmap().asImageBitmap()
+            cache.put(packageName, bitmap)
+            bitmap
+        } catch (e: Exception) {
+            null
+        }
+    }
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -33,9 +54,9 @@ fun AppItemRow(
     onToggleSelect: () -> Unit,
     onOpenDetail: () -> Unit
 ) {
-    // Memoize the icon bitmap so it doesn't re-convert on every scroll recomposition
-    val iconBitmap = remember(app.packageName, app.icon) {
-        app.icon?.toBitmap()?.asImageBitmap()
+    // Instant O(1) cache lookup avoids CPU Canvas software drawing overhead on scroll
+    val iconBitmap = remember(app.packageName) {
+        IconCache.getOrConvert(app.packageName, app.icon)
     }
 
     Card(

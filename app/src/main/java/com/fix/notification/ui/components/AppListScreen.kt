@@ -459,7 +459,8 @@ fun AppListScreen(
                 ) {
                     items(
                         items = filteredApps,
-                        key = { it.packageName }
+                        key = { it.packageName },
+                        contentType = { "app_row" }
                     ) { app ->
                         AppItemRow(
                             app = app,

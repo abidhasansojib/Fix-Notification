@@ -35,7 +35,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
@@ -86,10 +85,8 @@ fun TerminalScreen(
     var historyIndex by remember { mutableIntStateOf(-1) }
     val listState = rememberLazyListState()
 
-    // Auto-scroll to bottom when new command output arrives or when keyboard opens
-    val density = LocalDensity.current
-    val imeBottom = WindowInsets.ime.getBottom(density)
-    LaunchedEffect(entries.size, isExecuting, imeBottom) {
+    // Auto-scroll to bottom only when new command output arrives or execution status changes
+    LaunchedEffect(entries.size, isExecuting) {
         if (entries.isNotEmpty()) {
             listState.animateScrollToItem(entries.size)
         }
@@ -243,7 +240,11 @@ fun TerminalScreen(
                 }
 
                 // Command Entries
-                items(items = entries, key = { it.id }) { entry ->
+                items(
+                    items = entries,
+                    key = { it.id },
+                    contentType = { "terminal_entry" }
+                ) { entry ->
                     TerminalEntryView(
                         entry = entry,
                         onCopy = {
