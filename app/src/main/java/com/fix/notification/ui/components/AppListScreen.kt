@@ -71,6 +71,20 @@ fun AppListScreen(
         filteredApps.isNotEmpty() && filteredApps.all { it.isSelected }
     }
 
+    // Full Screen ADB Terminal Screen
+    if (uiState.isTerminalOpen) {
+        TerminalScreen(
+            isShizukuGranted = uiState.isShizukuGranted,
+            entries = uiState.terminalEntries,
+            isExecuting = uiState.isTerminalExecuting,
+            history = uiState.terminalCommandHistory,
+            onExecuteCommand = { cmd -> viewModel.executeTerminalCommand(cmd) },
+            onClear = { viewModel.clearTerminal() },
+            onBack = { viewModel.closeTerminal() }
+        )
+        return
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -483,19 +497,6 @@ fun AppListScreen(
             logs = uiState.fixLogs,
             isFinished = uiState.isFixFinished,
             onDismiss = { viewModel.closeFixProgressDialog() }
-        )
-    }
-
-    // ADB Terminal BottomSheet
-    if (uiState.isTerminalOpen) {
-        TerminalBottomSheet(
-            isShizukuGranted = uiState.isShizukuGranted,
-            entries = uiState.terminalEntries,
-            isExecuting = uiState.isTerminalExecuting,
-            history = uiState.terminalCommandHistory,
-            onExecuteCommand = { cmd -> viewModel.executeTerminalCommand(cmd) },
-            onClear = { viewModel.clearTerminal() },
-            onDismiss = { viewModel.closeTerminal() }
         )
     }
 }
