@@ -85,3 +85,14 @@ data class FixLog(
     /** True when a shell command genuinely failed — rendered in error red in log console. */
     val isError: Boolean = false
 )
+
+data class TerminalEntry(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val command: String,
+    val stdout: String,
+    val stderr: String,
+    val exitCode: Int,
+    val timestamp: String
+) {
+    val isSuccess: Boolean get() = exitCode == 0
+}

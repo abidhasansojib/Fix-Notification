@@ -8,6 +8,8 @@ import com.fix.notification.model.AppInfo
 import com.fix.notification.model.FixLog
 import com.fix.notification.repository.AppRepository
 import com.fix.notification.shizuku.ShizukuShellExecutor
+import com.fix.notification.model.TerminalEntry
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,7 +29,11 @@ data class MainUiState(
     val fixProgress: Float = 0f,
     val currentFixApp: String = "",
     val fixLogs: List<FixLog> = emptyList(),
-    val isFixFinished: Boolean = false
+    val isFixFinished: Boolean = false,
+    val isTerminalOpen: Boolean = false,
+    val terminalEntries: List<TerminalEntry> = emptyList(),
+    val isTerminalExecuting: Boolean = false,
+    val terminalCommandHistory: List<String> = emptyList()
 )
 
 class MainViewModel(
@@ -271,6 +277,91 @@ class MainViewModel(
     fun openGcmDiagnostics() {
         viewModelScope.launch {
             repository.openGcmDiagnostics()
+        }
+    }
+
+    fun openTerminal() {
+        _uiState.update { it.copy(isTerminalOpen = true) }
+    }
+
+    fun closeTerminal() {
+        _uiState.update { it.copy(isTerminalOpen = false) }
+    }
+
+    fun clearTerminal() {
+        _uiState.update { it.copy(terminalEntries = emptyList()) }
+    }
+
+    fun executeTerminalCommand(rawCommand: String) {
+        val trimmed = rawCommand.trim()
+        if (trimmed.isEmpty()) return
+
+        // Automatically strip "adb shell" prefix if user typed it out of habit
+        val command = if (trimmed.startsWith("adb shell ", ignoreCase = true)) {
+            trimmed.substring("adb shell ".length).trim()
+        } else if (trimmed.equals("adb shell", ignoreCase = true)) {
+            ""
+        } else {
+            trimmed
+        }
+
+        if (command.equals("clear", ignoreCase = true) || command.equals("cls", ignoreCase = true)) {
+            clearTerminal()
+            return
+        }
+
+        val timeFormat = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+        val timestamp = timeFormat.format(java.util.Date())
+
+        if (command.equals("help", ignoreCase = true)) {
+            val helpOutput = """
+                Common ADB / Shizuku Commands:
+                  • cmd appops get <pkg> [op]      - Inspect AppOps (e.g. 10008, RUN_IN_BACKGROUND)
+                  • cmd appops set <pkg> <op> allow/ignore - Modify AppOp state
+                  • settings get system <key>          - Read MIUI table (e.g. MILLET_NO_RESTRICT_APP)
+                  • settings put system <key> "<val>"  - Write MIUI table
+                  • dumpsys deviceidle whitelist       - Check Doze whitelist
+                  • dumpsys notification | grep ...    - Check notification importance
+                  • pm list packages -3               - List third-party installed packages
+                  • whoami / id                       - Check shell identity (uid=2000 shell)
+                  • getprop ro.mi.os.version.incremental - Read ROM version
+                  • clear                              - Clear terminal output
+            """.trimIndent()
+            val entry = TerminalEntry(
+                command = trimmed,
+                stdout = helpOutput,
+                stderr = "",
+                exitCode = 0,
+                timestamp = timestamp
+            )
+            _uiState.update { state ->
+                val newHistory = (state.terminalCommandHistory + trimmed).distinct()
+                state.copy(
+                    terminalEntries = state.terminalEntries + entry,
+                    terminalCommandHistory = newHistory
+                )
+            }
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update { it.copy(isTerminalExecuting = true) }
+            val result = ShizukuShellExecutor.run(command)
+            val entry = TerminalEntry(
+                command = trimmed,
+                stdout = result.stdout,
+                stderr = result.stderr,
+                exitCode = result.exitCode,
+                timestamp = timestamp
+            )
+            _uiState.update { state ->
+                val newHistory = (state.terminalCommandHistory + trimmed).distinct()
+                state.copy(
+                    terminalEntries = state.terminalEntries + entry,
+                    terminalCommandHistory = newHistory,
+                    isTerminalExecuting = false
+                )
+            }
         }
     }
 

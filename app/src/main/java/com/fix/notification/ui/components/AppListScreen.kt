@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -81,6 +82,18 @@ fun AppListScreen(
                     )
                 },
                 actions = {
+                    // ADB Terminal action
+                    IconButton(
+                        onClick = { viewModel.openTerminal() },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Terminal,
+                            contentDescription = "ADB Terminal",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
                     // GCM Diagnostics action
                     IconButton(
                         onClick = { viewModel.openGcmDiagnostics() },
@@ -470,6 +483,19 @@ fun AppListScreen(
             logs = uiState.fixLogs,
             isFinished = uiState.isFixFinished,
             onDismiss = { viewModel.closeFixProgressDialog() }
+        )
+    }
+
+    // ADB Terminal BottomSheet
+    if (uiState.isTerminalOpen) {
+        TerminalBottomSheet(
+            isShizukuGranted = uiState.isShizukuGranted,
+            entries = uiState.terminalEntries,
+            isExecuting = uiState.isTerminalExecuting,
+            history = uiState.terminalCommandHistory,
+            onExecuteCommand = { cmd -> viewModel.executeTerminalCommand(cmd) },
+            onClear = { viewModel.clearTerminal() },
+            onDismiss = { viewModel.closeTerminal() }
         )
     }
 }

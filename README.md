@@ -18,6 +18,7 @@ The app interfaces directly with low-level Android system frameworks and MIUI po
   - **MIUI Auto-Start Management**: Toggles AppOp `10008` directly and provides a 1-tap shortcut to the MIUI Security Center Autostart manager.
 - 🔍 **Detailed Diagnostics**: Live state inspection for notification permissions, battery optimization, standby bucket, and Xiaomi-specific parameters.
 - 🌐 **Remote Recommended App List**: Dynamically loaded from CDN with local fallback.
+- 💻 **Built-in Shizuku ADB Terminal**: Execute any ADB shell command (`cmd appops`, `settings`, `dumpsys`, `pm`, etc.) directly on your Android device via Shizuku with interactive output, quick command presets, history navigation, and clipboard export.
 - 🎨 **Modern Jetpack Compose UI**: Clean Material Design 3 interface with full Dark Mode support.
 
 ---
