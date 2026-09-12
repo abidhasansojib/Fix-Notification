@@ -3,13 +3,10 @@ package com.fix.notification.ui.components
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -17,7 +14,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +34,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -39,33 +42,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fix.notification.model.TerminalEntry
 
-// Terminal Color Palette (GitHub / AMOLED Dark Terminal)
-private val TerminalBg = Color(0xFF0D1117)
-private val TerminalSurface = Color(0xFF161B22)
-private val TerminalBorder = Color(0xFF30363D)
-private val PromptGreen = Color(0xFF3FB950)
-private val OutputText = Color(0xFFC9D1D9)
-private val ErrorRed = Color(0xFFF85149)
+// AMOLED Dark Terminal Theme
+private val TerminalBg = Color(0xFF090D12)
+private val TerminalSurface = Color(0xFF131920)
+private val TerminalCardBg = Color(0xFF161E28)
+private val TerminalBorder = Color(0xFF2A3441)
+private val PromptColor = Color(0xFF38D39F)
+private val OutputTextColor = Color(0xFFD1D7E0)
+private val ErrorColor = Color(0xFFFF5F56)
 private val AccentCyan = Color(0xFF58A6FF)
-private val SuccessBg = Color(0xFF238636)
-private val ErrorBg = Color(0xFFDA3633)
-private val SubduedGray = Color(0xFF8B949E)
-
-private val COMMON_COMMAND_PRESETS = listOf(
-    "cmd appops get ",
-    "cmd appops set ",
-    "settings get system MILLET_NO_RESTRICT_APP",
-    "settings put system MILLET_NO_RESTRICT_APP ",
-    "settings get system millet_white",
-    "settings get system cloud_lowlatency_whitelist",
-    "dumpsys deviceidle whitelist",
-    "dumpsys notification",
-    "pm list packages -3",
-    "whoami",
-    "id",
-    "help",
-    "clear"
-)
+private val SubduedGray = Color(0xFF7D8590)
+private val DotRed = Color(0xFFFF5F56)
+private val DotYellow = Color(0xFFFFBD2E)
+private val DotGreen = Color(0xFF27C93F)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,17 +89,17 @@ fun TerminalBottomSheet(
         onDismissRequest = { onDismiss() },
         sheetState = sheetState,
         containerColor = TerminalBg,
-        contentColor = OutputText,
+        contentColor = OutputTextColor,
         dragHandle = null,
         windowInsets = WindowInsets.safeDrawing
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.92f)
+                .fillMaxHeight(0.95f)
                 .imePadding()
         ) {
-            // 1. Terminal Top Bar
+            // 1. macOS / Modern Terminal Title Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -119,41 +108,75 @@ fun TerminalBottomSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // Left: Window decoration dots & session identity
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Terminal,
-                        contentDescription = null,
-                        tint = AccentCyan,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = "ADB Terminal",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = Color.White
+                    // Terminal 3-dot window buttons
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(DotRed)
                         )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(DotYellow)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(DotGreen)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Text(
+                        text = "shizuku@android",
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Shizuku UID status badge
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isShizukuGranted) Color(0xFF1F3D2B) else Color(0xFF3D1F23)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Box(
                                 modifier = Modifier
-                                    .size(7.dp)
+                                    .size(6.dp)
                                     .clip(CircleShape)
-                                    .background(if (isShizukuGranted) PromptGreen else ErrorRed)
+                                    .background(if (isShizukuGranted) PromptColor else ErrorColor)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = if (isShizukuGranted) "Shizuku uid=2000" else "Shizuku Not Granted",
-                                fontSize = 11.sp,
+                                text = if (isShizukuGranted) "uid=2000" else "offline",
+                                fontSize = 10.sp,
                                 fontFamily = FontFamily.Monospace,
-                                color = if (isShizukuGranted) PromptGreen else ErrorRed
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isShizukuGranted) PromptColor else ErrorColor
                             )
                         }
                     }
                 }
 
+                // Right: Actions (Copy All, Clear, Close)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Copy All Output
+                    // Copy session
                     IconButton(
                         onClick = {
                             if (entries.isNotEmpty()) {
@@ -166,39 +189,39 @@ fun TerminalBottomSheet(
                                 Toast.makeText(context, "Session copied to clipboard", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(34.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.ContentCopy,
-                            contentDescription = "Copy all output",
+                            contentDescription = "Copy session",
                             tint = SubduedGray,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(17.dp)
                         )
                     }
 
-                    // Clear Terminal
+                    // Clear terminal
                     IconButton(
                         onClick = { onClear() },
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(34.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
                             contentDescription = "Clear terminal",
                             tint = SubduedGray,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(19.dp)
                         )
                     }
 
-                    // Close Sheet
+                    // Close sheet
                     IconButton(
                         onClick = { onDismiss() },
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(34.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
                             tint = SubduedGray,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(19.dp)
                         )
                     }
                 }
@@ -206,57 +229,7 @@ fun TerminalBottomSheet(
 
             HorizontalDivider(color = TerminalBorder, thickness = 1.dp)
 
-            // 2. Preset Quick Commands Scrollable Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(TerminalSurface.copy(alpha = 0.6f))
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "QUICK:",
-                    fontSize = 10.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = SubduedGray
-                )
-                COMMON_COMMAND_PRESETS.forEach { preset ->
-                    Surface(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .clickable {
-                                if (preset == "clear") {
-                                    onClear()
-                                } else if (preset == "help" || preset == "whoami" || preset == "id") {
-                                    onExecuteCommand(preset)
-                                } else {
-                                    inputText = preset
-                                    historyIndex = -1
-                                    focusRequester.requestFocus()
-                                }
-                            },
-                        color = TerminalSurface,
-                        shape = RoundedCornerShape(6.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, TerminalBorder)
-                    ) {
-                        Text(
-                            text = preset.trim(),
-                            fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Medium,
-                            color = AccentCyan,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            }
-
-            HorizontalDivider(color = TerminalBorder, thickness = 1.dp)
-
-            // 3. Console Output Screen
+            // 2. Terminal Console Screen
             SelectionContainer(
                 modifier = Modifier
                     .weight(1f)
@@ -268,31 +241,31 @@ fun TerminalBottomSheet(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Terminal Welcome Banner
+                    // Minimalist Terminal Welcome Banner
                     item {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(6.dp))
                                 .background(TerminalSurface.copy(alpha = 0.5f))
-                                .border(1.dp, TerminalBorder.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                .padding(10.dp)
+                                .border(1.dp, TerminalBorder.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
                             Text(
-                                text = "Shizuku ADB Shell Console",
+                                text = "Fix Notification ADB Shell [Shizuku uid=2000]",
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 color = AccentCyan
                             )
-                            Spacer(modifier = Modifier.height(3.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "• Execute any ADB shell command locally (cmd appops, settings, pm, dumpsys).\n• Supports commands with or without 'adb shell' prefix.\n• Tap quick chips above or enter commands below.",
+                                text = "Execute ADB shell commands directly. Type 'help' for examples or 'clear' to wipe buffer.",
                                 fontFamily = FontFamily.Monospace,
-                                fontSize = 11.sp,
-                                lineHeight = 16.sp,
+                                fontSize = 10.sp,
+                                lineHeight = 14.sp,
                                 color = SubduedGray
                             )
                         }
@@ -303,8 +276,11 @@ fun TerminalBottomSheet(
                         TerminalEntryView(
                             entry = entry,
                             onCopy = {
-                                clipboardManager.setText(AnnotatedString(entry.stdout.ifEmpty { entry.stderr }))
-                                Toast.makeText(context, "Command output copied", Toast.LENGTH_SHORT).show()
+                                val textToCopy = entry.stdout.ifEmpty { entry.stderr }
+                                if (textToCopy.isNotBlank()) {
+                                    clipboardManager.setText(AnnotatedString(textToCopy))
+                                    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         )
                     }
@@ -313,20 +289,20 @@ fun TerminalBottomSheet(
                     if (isExecuting) {
                         item {
                             Row(
-                                modifier = Modifier.padding(vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(14.dp),
+                                    modifier = Modifier.size(12.dp),
                                     strokeWidth = 2.dp,
-                                    color = AccentCyan
+                                    color = PromptColor
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Executing in Shizuku...",
+                                    text = "Executing in Shizuku shell...",
                                     fontFamily = FontFamily.Monospace,
                                     fontSize = 11.sp,
-                                    color = AccentCyan
+                                    color = PromptColor
                                 )
                             }
                         }
@@ -336,7 +312,7 @@ fun TerminalBottomSheet(
 
             HorizontalDivider(color = TerminalBorder, thickness = 1.dp)
 
-            // 4. Command Input & Control Bar
+            // 3. Command Input & History Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -359,7 +335,7 @@ fun TerminalBottomSheet(
                             imageVector = Icons.Default.KeyboardArrowUp,
                             contentDescription = "Previous command",
                             tint = if (historyIndex < history.size - 1) AccentCyan else SubduedGray,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
 
@@ -379,23 +355,23 @@ fun TerminalBottomSheet(
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = "Next command",
-                            tint = if (historyIndex >= 0) AccentCyan else SubduedGray.copy(alpha = 0.4f),
-                            modifier = Modifier.size(20.dp)
+                            tint = if (historyIndex >= 0) AccentCyan else SubduedGray.copy(alpha = 0.3f),
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
 
-                // Prompt symbol
+                // Shell Prompt Symbol
                 Text(
-                    text = "$",
+                    text = "❯",
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = PromptGreen,
-                    modifier = Modifier.padding(horizontal = 6.dp)
+                    fontSize = 14.sp,
+                    color = PromptColor,
+                    modifier = Modifier.padding(start = 4.dp, end = 6.dp)
                 )
 
-                // Input Field
+                // Input Box
                 OutlinedTextField(
                     value = inputText,
                     onValueChange = {
@@ -410,7 +386,7 @@ fun TerminalBottomSheet(
                             text = "e.g. cmd appops get <pkg> 10008",
                             fontSize = 12.sp,
                             fontFamily = FontFamily.Monospace,
-                            color = SubduedGray.copy(alpha = 0.6f)
+                            color = SubduedGray.copy(alpha = 0.5f)
                         )
                     },
                     textStyle = TextStyle(
@@ -440,7 +416,7 @@ fun TerminalBottomSheet(
                                     imageVector = Icons.Default.Clear,
                                     contentDescription = "Clear input",
                                     tint = SubduedGray,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(15.dp)
                                 )
                             }
                         }
@@ -451,13 +427,13 @@ fun TerminalBottomSheet(
                         unfocusedContainerColor = TerminalBg,
                         focusedBorderColor = AccentCyan,
                         unfocusedBorderColor = TerminalBorder,
-                        cursorColor = AccentCyan
+                        cursorColor = PromptColor
                     )
                 )
 
                 Spacer(modifier = Modifier.width(6.dp))
 
-                // Run / Send Button
+                // Run / Execute Button
                 IconButton(
                     onClick = {
                         if (inputText.isNotBlank() && !isExecuting) {
@@ -469,15 +445,15 @@ fun TerminalBottomSheet(
                     },
                     enabled = inputText.isNotBlank() && !isExecuting,
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(38.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (inputText.isNotBlank() && !isExecuting) AccentCyan else TerminalBorder)
+                        .background(if (inputText.isNotBlank() && !isExecuting) AccentCyan else TerminalBorder.copy(alpha = 0.6f))
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Execute Command",
                         tint = if (inputText.isNotBlank() && !isExecuting) Color.Black else SubduedGray,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -493,27 +469,27 @@ private fun TerminalEntryView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(TerminalSurface.copy(alpha = 0.7f))
-            .border(1.dp, TerminalBorder, RoundedCornerShape(8.dp))
-            .padding(10.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(TerminalCardBg)
+            .border(1.dp, TerminalBorder.copy(alpha = 0.7f), RoundedCornerShape(6.dp))
+            .padding(8.dp)
     ) {
-        // Command header
+        // Command header: prompt + command on left, status + timestamp + copy on right
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f, fill = false),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "$ ",
+                    text = "❯ ",
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
-                    color = PromptGreen
+                    color = PromptColor
                 )
                 Text(
                     text = entry.command,
@@ -524,19 +500,21 @@ private fun TerminalEntryView(
                 )
             }
 
+            Spacer(modifier = Modifier.width(6.dp))
+
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Exit status pill
+                // Exit code status badge
                 Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = if (entry.isSuccess) SuccessBg.copy(alpha = 0.25f) else ErrorBg.copy(alpha = 0.25f)
+                    shape = RoundedCornerShape(3.dp),
+                    color = if (entry.isSuccess) Color(0xFF1F3D2B) else Color(0xFF3D1F23)
                 ) {
                     Text(
-                        text = if (entry.isSuccess) "✓ 0" else "exit ${entry.exitCode}",
-                        fontSize = 10.sp,
+                        text = if (entry.isSuccess) "✓ 0" else "✗ ${entry.exitCode}",
+                        fontSize = 9.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
-                        color = if (entry.isSuccess) PromptGreen else ErrorRed,
-                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                        color = if (entry.isSuccess) PromptColor else ErrorColor,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                     )
                 }
 
@@ -544,59 +522,59 @@ private fun TerminalEntryView(
 
                 Text(
                     text = entry.timestamp,
-                    fontSize = 10.sp,
+                    fontSize = 9.sp,
                     fontFamily = FontFamily.Monospace,
                     color = SubduedGray
                 )
 
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(2.dp))
 
                 IconButton(
                     onClick = onCopy,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(22.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.ContentCopy,
                         contentDescription = "Copy output",
                         tint = SubduedGray,
-                        modifier = Modifier.size(13.dp)
+                        modifier = Modifier.size(12.dp)
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Stdout
         if (entry.stdout.isNotBlank()) {
             Text(
                 text = entry.stdout,
                 fontFamily = FontFamily.Monospace,
-                fontSize = 12.sp,
-                lineHeight = 16.sp,
-                color = OutputText
+                fontSize = 11.sp,
+                lineHeight = 15.sp,
+                color = OutputTextColor
             )
         }
 
         // Stderr
         if (entry.stderr.isNotBlank()) {
-            if (entry.stdout.isNotBlank()) Spacer(modifier = Modifier.height(4.dp))
+            if (entry.stdout.isNotBlank()) Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = entry.stderr,
                 fontFamily = FontFamily.Monospace,
-                fontSize = 12.sp,
-                lineHeight = 16.sp,
-                color = ErrorRed
+                fontSize = 11.sp,
+                lineHeight = 15.sp,
+                color = ErrorColor
             )
         }
 
-        // If command produced no output
+        // Empty output indicator
         if (entry.stdout.isBlank() && entry.stderr.isBlank()) {
             Text(
-                text = "(command completed with no output)",
+                text = "(no output)",
                 fontFamily = FontFamily.Monospace,
-                fontSize = 11.sp,
-                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                fontSize = 10.sp,
+                fontStyle = FontStyle.Italic,
                 color = SubduedGray
             )
         }
