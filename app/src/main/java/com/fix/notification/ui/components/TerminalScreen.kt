@@ -2,8 +2,10 @@ package com.fix.notification.ui.components
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -201,84 +203,158 @@ fun TerminalScreen(
             HorizontalDivider(color = TerminalBorder, thickness = 1.dp)
 
             // 2. Terminal Console Screen (Flexibly occupies all remaining vertical space)
-            SelectionContainer(
+            LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .background(TerminalBg)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Banner
-                    item {
-                        SelectionContainer {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(TerminalSurface.copy(alpha = 0.5f))
-                                    .border(1.dp, TerminalBorder.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                            ) {
-                                Text(
-                                    text = "ADB Shell",
-                                    fontFamily = FontFamily.Monospace,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    color = AccentCyan
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Execute ADB shell commands directly. Type 'help' for examples or 'clear' to wipe buffer.",
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = 10.sp,
-                                    lineHeight = 14.sp,
-                                    color = SubduedGray
-                                )
-                            }
+                // Banner
+                item {
+                    SelectionContainer {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(TerminalSurface.copy(alpha = 0.5f))
+                                .border(1.dp, TerminalBorder.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "ADB Shell",
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = AccentCyan
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Execute ADB shell commands directly. Type 'help' for examples or 'clear' to wipe buffer.",
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 10.sp,
+                                lineHeight = 14.sp,
+                                color = SubduedGray
+                            )
                         }
                     }
+                }
 
-                    // Command Entries
-                    items(items = entries, key = { it.id }) { entry ->
-                        TerminalEntryView(
-                            entry = entry,
-                            onCopy = {
-                                val textToCopy = entry.stdout.ifEmpty { entry.stderr }
-                                if (textToCopy.isNotBlank()) {
-                                    clipboardManager.setText(AnnotatedString(textToCopy))
-                                    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
-                                }
+                // Command Entries
+                items(items = entries, key = { it.id }) { entry ->
+                    TerminalEntryView(
+                        entry = entry,
+                        onCopy = {
+                            val textToCopy = entry.stdout.ifEmpty { entry.stderr }
+                            if (textToCopy.isNotBlank()) {
+                                clipboardManager.setText(AnnotatedString(textToCopy))
+                                Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
                             }
+                        }
+                    )
+                }
+
+                // Executing Progress indicator
+                if (isExecuting) {
+                    item {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(12.dp),
+                                strokeWidth = 2.dp,
+                                color = PromptColor
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Executing in Shizuku shell...",
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 11.sp,
+                                color = PromptColor
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Multiline navigation helper bar (Appears when text contains multiple lines)
+            if (inputState.text.contains('\n')) {
+                HorizontalDivider(color = TerminalBorder, thickness = 1.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(TerminalCardBg)
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${inputState.text.lines().size} lines",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        color = SubduedGray
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Jump cursor to top
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = TerminalSurface,
+                        border = BorderStroke(1.dp, TerminalBorder),
+                        modifier = Modifier.clickable {
+                            inputState = inputState.copy(selection = TextRange(0))
+                        }
+                    ) {
+                        Text(
+                            text = "▲ Top",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AccentCyan,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                         )
                     }
 
-                    // Executing Progress indicator
-                    if (isExecuting) {
-                        item {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(12.dp),
-                                    strokeWidth = 2.dp,
-                                    color = PromptColor
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Executing in Shizuku shell...",
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = 11.sp,
-                                    color = PromptColor
-                                )
-                            }
+                    // Jump cursor to bottom
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = TerminalSurface,
+                        border = BorderStroke(1.dp, TerminalBorder),
+                        modifier = Modifier.clickable {
+                            inputState = inputState.copy(selection = TextRange(inputState.text.length))
                         }
+                    ) {
+                        Text(
+                            text = "▼ End",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AccentCyan,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                        )
+                    }
+
+                    // Select all
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = TerminalSurface,
+                        border = BorderStroke(1.dp, TerminalBorder),
+                        modifier = Modifier.clickable {
+                            inputState = inputState.copy(selection = TextRange(0, inputState.text.length))
+                        }
+                    ) {
+                        Text(
+                            text = "Select All",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PromptColor,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                        )
                     }
                 }
             }
@@ -361,7 +437,7 @@ fun TerminalScreen(
                         modifier = Modifier.padding(start = 4.dp, end = 6.dp, bottom = 12.dp)
                     )
 
-                    // Input Field (Auto-wraps up to 4 lines, easy to view and tap to edit long commands)
+                    // Input Field (Auto-wraps up to 6 lines, easy to view, tap and edit long commands)
                     OutlinedTextField(
                         value = inputState,
                         onValueChange = { newValue ->
@@ -387,7 +463,7 @@ fun TerminalScreen(
                         ),
                         singleLine = false,
                         minLines = 1,
-                        maxLines = 4,
+                        maxLines = 6,
                         keyboardOptions = KeyboardOptions(
                             imeAction = ImeAction.Send,
                             keyboardType = KeyboardType.Ascii,
