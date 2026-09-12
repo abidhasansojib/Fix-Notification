@@ -36,12 +36,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fix.notification.model.TerminalEntry
@@ -78,7 +80,7 @@ fun TerminalScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
 
-    var inputText by remember { mutableStateOf("") }
+    var inputState by remember { mutableStateOf(TextFieldValue("")) }
     var historyIndex by remember { mutableIntStateOf(-1) }
     val listState = rememberLazyListState()
 
@@ -156,7 +158,7 @@ fun TerminalScreen(
                     }
                 },
                 actions = {
-                    // Copy entire session
+                    // Copy entire session transcript
                     IconButton(
                         onClick = {
                             if (entries.isNotEmpty()) {
@@ -166,7 +168,9 @@ fun TerminalScreen(
                                     "❯ ${entry.command}$out$err (exit ${entry.exitCode})"
                                 }
                                 clipboardManager.setText(AnnotatedString(transcript))
-                                Toast.makeText(context, "Session copied to clipboard", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Full session transcript copied (${entries.size} commands)", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "No commands in session to copy", Toast.LENGTH_SHORT).show()
                             }
                         }
                     ) {
@@ -281,7 +285,7 @@ fun TerminalScreen(
 
             HorizontalDivider(color = TerminalBorder, thickness = 1.dp)
 
-            // 3. Command Input Bar (Smoothly elevated directly above the keyboard with no gaps)
+            // 3. Command Input Bar (Dynamically wraps long commands, smoothly elevated above keyboard)
             Surface(
                 color = TerminalSurface,
                 modifier = Modifier.fillMaxWidth()
@@ -291,46 +295,59 @@ fun TerminalScreen(
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
                         .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Bottom
                 ) {
                     // Command History Navigation (Up/Down)
                     if (history.isNotEmpty()) {
-                        IconButton(
-                            onClick = {
-                                if (historyIndex < history.size - 1) {
-                                    historyIndex++
-                                    inputText = history[history.size - 1 - historyIndex]
-                                }
-                            },
-                            modifier = Modifier.size(32.dp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(bottom = 4.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowUp,
-                                contentDescription = "Previous command",
-                                tint = if (historyIndex < history.size - 1) AccentCyan else SubduedGray,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                            IconButton(
+                                onClick = {
+                                    if (historyIndex < history.size - 1) {
+                                        historyIndex++
+                                        val cmd = history[history.size - 1 - historyIndex]
+                                        inputState = TextFieldValue(
+                                            text = cmd,
+                                            selection = TextRange(cmd.length)
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowUp,
+                                    contentDescription = "Previous command",
+                                    tint = if (historyIndex < history.size - 1) AccentCyan else SubduedGray,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
 
-                        IconButton(
-                            onClick = {
-                                if (historyIndex > 0) {
-                                    historyIndex--
-                                    inputText = history[history.size - 1 - historyIndex]
-                                } else if (historyIndex == 0) {
-                                    historyIndex = -1
-                                    inputText = ""
-                                }
-                            },
-                            modifier = Modifier.size(32.dp),
-                            enabled = historyIndex >= 0
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = "Next command",
-                                tint = if (historyIndex >= 0) AccentCyan else SubduedGray.copy(alpha = 0.3f),
-                                modifier = Modifier.size(18.dp)
-                            )
+                            IconButton(
+                                onClick = {
+                                    if (historyIndex > 0) {
+                                        historyIndex--
+                                        val cmd = history[history.size - 1 - historyIndex]
+                                        inputState = TextFieldValue(
+                                            text = cmd,
+                                            selection = TextRange(cmd.length)
+                                        )
+                                    } else if (historyIndex == 0) {
+                                        historyIndex = -1
+                                        inputState = TextFieldValue("")
+                                    }
+                                },
+                                modifier = Modifier.size(32.dp),
+                                enabled = historyIndex >= 0
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Next command",
+                                    tint = if (historyIndex >= 0) AccentCyan else SubduedGray.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
 
@@ -341,14 +358,14 @@ fun TerminalScreen(
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = PromptColor,
-                        modifier = Modifier.padding(start = 4.dp, end = 6.dp)
+                        modifier = Modifier.padding(start = 4.dp, end = 6.dp, bottom = 12.dp)
                     )
 
-                    // Input Field (Single line, strictly constrained height)
+                    // Input Field (Auto-wraps up to 4 lines, easy to view and tap to edit long commands)
                     OutlinedTextField(
-                        value = inputText,
-                        onValueChange = {
-                            inputText = it
+                        value = inputState,
+                        onValueChange = { newValue ->
+                            inputState = newValue
                             historyIndex = -1
                         },
                         modifier = Modifier
@@ -356,7 +373,7 @@ fun TerminalScreen(
                             .focusRequester(focusRequester),
                         placeholder = {
                             Text(
-                                text = "e.g. cmd appops get <pkg> 10008",
+                                text = "Command (e.g. pm list, appops)",
                                 fontSize = 12.sp,
                                 fontFamily = FontFamily.Monospace,
                                 maxLines = 1,
@@ -368,8 +385,9 @@ fun TerminalScreen(
                             fontSize = 13.sp,
                             color = Color.White
                         ),
-                        singleLine = true,
-                        maxLines = 1,
+                        singleLine = false,
+                        minLines = 1,
+                        maxLines = 4,
                         keyboardOptions = KeyboardOptions(
                             imeAction = ImeAction.Send,
                             keyboardType = KeyboardType.Ascii,
@@ -377,16 +395,20 @@ fun TerminalScreen(
                         ),
                         keyboardActions = KeyboardActions(
                             onSend = {
-                                if (inputText.isNotBlank() && !isExecuting) {
-                                    onExecuteCommand(inputText)
-                                    inputText = ""
+                                val cmd = inputState.text.trim()
+                                if (cmd.isNotBlank() && !isExecuting) {
+                                    onExecuteCommand(cmd)
+                                    inputState = TextFieldValue("")
                                     historyIndex = -1
                                 }
                             }
                         ),
                         trailingIcon = {
-                            if (inputText.isNotEmpty()) {
-                                IconButton(onClick = { inputText = "" }, modifier = Modifier.size(24.dp)) {
+                            if (inputState.text.isNotEmpty()) {
+                                IconButton(
+                                    onClick = { inputState = TextFieldValue("") },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
                                     Icon(
                                         imageVector = Icons.Default.Clear,
                                         contentDescription = "Clear input",
@@ -411,23 +433,25 @@ fun TerminalScreen(
                     // Run / Send Button
                     IconButton(
                         onClick = {
-                            if (inputText.isNotBlank() && !isExecuting) {
-                                onExecuteCommand(inputText)
-                                inputText = ""
+                            val cmd = inputState.text.trim()
+                            if (cmd.isNotBlank() && !isExecuting) {
+                                onExecuteCommand(cmd)
+                                inputState = TextFieldValue("")
                                 historyIndex = -1
                                 keyboardController?.hide()
                             }
                         },
-                        enabled = inputText.isNotBlank() && !isExecuting,
+                        enabled = inputState.text.isNotBlank() && !isExecuting,
                         modifier = Modifier
+                            .padding(bottom = 4.dp)
                             .size(38.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(if (inputText.isNotBlank() && !isExecuting) AccentCyan else TerminalBorder.copy(alpha = 0.6f))
+                            .background(if (inputState.text.isNotBlank() && !isExecuting) AccentCyan else TerminalBorder.copy(alpha = 0.6f))
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = "Execute Command",
-                            tint = if (inputText.isNotBlank() && !isExecuting) Color.Black else SubduedGray,
+                            tint = if (inputState.text.isNotBlank() && !isExecuting) Color.Black else SubduedGray,
                             modifier = Modifier.size(16.dp)
                         )
                     }
